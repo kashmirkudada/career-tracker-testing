@@ -1,0 +1,1816 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Career Tracker — API Tester</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f0f0f0;
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 32px 16px;
+      }
+
+      .app {
+        display: flex;
+        width: 100%;
+        max-width: 900px;
+        min-height: 600px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 0.5px solid #d1d1d6;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: 210px;
+        background: #1c1c1e;
+        padding: 20px 0 16px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-brand {
+        padding: 0 16px 20px;
+        border-bottom: 0.5px solid #3a3a3c;
+      }
+      .sidebar-brand .brand-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+      }
+      .sidebar-brand .brand-sub {
+        font-size: 11px;
+        color: #636366;
+        margin-top: 2px;
+      }
+
+      .user-chip {
+        margin: 12px 12px 4px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #2c2c2e;
+        border: 0.5px solid #3a3a3c;
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      .user-chip.visible {
+        display: flex;
+      }
+      .user-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #0a84ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .user-chip-info {
+        min-width: 0;
+      }
+      .user-chip-name {
+        font-size: 11px;
+        font-weight: 500;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .user-chip-label {
+        font-size: 10px;
+        color: #636366;
+      }
+
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: #48484a;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 16px 16px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #8e8e93;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.1s,
+          color 0.1s;
+        border-radius: 0;
+      }
+      .nav-item i {
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .nav-item:hover {
+        background: #2c2c2e;
+        color: #ebebf0;
+      }
+      .nav-item.active {
+        background: #2c2c2e;
+        color: #ffffff;
+        font-weight: 500;
+        border-left-color: #0a84ff;
+      }
+      .nav-item.active i {
+        color: #0a84ff;
+      }
+
+      /* AI nav items */
+      .nav-item.ai-item.active {
+        border-left-color: #7c3aed;
+      }
+      .nav-item.ai-item.active i {
+        color: #a78bfa;
+      }
+      .nav-item.ai-item:hover i {
+        color: #a78bfa;
+      }
+
+      .nav-ai-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: #48484a;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 16px 16px 6px;
+        border-top: 0.5px solid #3a3a3c;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .nav-ai-label .ai-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7c3aed;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* MAIN */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #f5f5f7;
+      }
+      .page {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+      }
+      .page.active {
+        display: flex;
+      }
+
+      .page-header {
+        padding: 18px 24px 14px;
+        border-bottom: 0.5px solid #d1d1d6;
+        background: #ffffff;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .page-header-text h2 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #000;
+      }
+      .page-header-text p {
+        font-size: 12px;
+        color: #8e8e93;
+        margin-top: 2px;
+      }
+
+      /* AI page header special */
+      .page-header.ai-header {
+        background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+        border-bottom-color: #4c1d95;
+      }
+      .page-header.ai-header .page-header-text h2 {
+        color: #fff;
+      }
+      .page-header.ai-header .page-header-text p {
+        color: #c4b5fd;
+      }
+      .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: rgba(124, 58, 237, 0.3);
+        border: 0.5px solid rgba(167, 139, 250, 0.4);
+        font-size: 10px;
+        font-weight: 600;
+        color: #c4b5fd;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        flex-shrink: 0;
+      }
+
+      .page-body {
+        padding: 20px 24px;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      /* FORM ELEMENTS */
+      .field {
+        margin-bottom: 13px;
+      }
+      .field label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #3c3c43;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      .field label .auto-badge {
+        font-size: 10px;
+        font-weight: 500;
+        background: #e8f4ff;
+        color: #0a84ff;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        font-size: 13px;
+        padding: 8px 11px;
+        border: 0.5px solid #c7c7cc;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #000000;
+        outline: none;
+        font-family: inherit;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+      .field select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 28px;
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        border-color: #0a84ff;
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
+      }
+      .field input::placeholder,
+      .field textarea::placeholder {
+        color: #aeaeb2;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+
+      .submit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #0a84ff;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+      }
+      .submit-btn:hover {
+        opacity: 0.86;
+      }
+      .submit-btn:active {
+        transform: scale(0.97);
+      }
+      .submit-btn i {
+        font-size: 14px;
+      }
+      .submit-btn.dark {
+        background: #1c1c1e;
+      }
+      .submit-btn.ai-btn {
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+      }
+      .submit-btn.ai-btn:hover {
+        opacity: 0.9;
+      }
+      .submit-btn.ai-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .get-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #ffffff;
+        color: #000;
+        border: 0.5px solid #c7c7cc;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.1s;
+      }
+      .get-btn:hover {
+        background: #f0f0f0;
+      }
+      .get-btn i {
+        font-size: 14px;
+        color: #636366;
+      }
+
+      /* RESPONSE */
+      .response-box {
+        margin-top: 20px;
+        border-top: 0.5px solid #d1d1d6;
+        padding-top: 16px;
+      }
+      .response-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8e8e93;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #c7c7cc;
+        flex-shrink: 0;
+        transition: background 0.2s;
+      }
+      .status-dot.ok {
+        background: #34c759;
+      }
+      .status-dot.err {
+        background: #ff3b30;
+      }
+      .status-dot.loading {
+        background: #ff9f0a;
+        animation: blink 0.8s infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      pre.response {
+        background: #ffffff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 12px;
+        font-family: "SF Mono", "Fira Mono", monospace;
+        color: #3c3c43;
+        white-space: pre-wrap;
+        word-break: break-all;
+        min-height: 52px;
+        max-height: 260px;
+        overflow-y: auto;
+      }
+
+      /* AI response special */
+      pre.response.ai-response {
+        background: #faf5ff;
+        border-color: #e9d5ff;
+        color: #2e1065;
+        max-height: 320px;
+      }
+
+      /* Cover letter output */
+      .cover-letter-out {
+        display: none;
+        background: #fff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 10px;
+        padding: 16px 18px;
+        font-size: 13px;
+        line-height: 1.7;
+        color: #1c1c1e;
+        white-space: pre-wrap;
+        max-height: 360px;
+        overflow-y: auto;
+        margin-top: 12px;
+      }
+      .cover-letter-out.visible {
+        display: block;
+      }
+
+      /* Interview questions output */
+      .questions-list {
+        display: none;
+        margin-top: 12px;
+      }
+      .questions-list.visible {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .question-card {
+        background: #fff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .question-card .q-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .q-type-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .q-type-badge.technical {
+        background: #e8f4ff;
+        color: #0055b3;
+      }
+      .q-type-badge.behavioral {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .question-card .q-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1c1c1e;
+        margin-bottom: 6px;
+      }
+      .question-card .q-tip {
+        font-size: 11px;
+        color: #636366;
+        display: flex;
+        align-items: flex-start;
+        gap: 5px;
+      }
+      .question-card .q-tip i {
+        font-size: 12px;
+        color: #34c759;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      /* Roadmap steps preview */
+      .steps-preview {
+        display: none;
+        margin-top: 12px;
+      }
+      .steps-preview.visible {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .step-card {
+        background: #fff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .step-num {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .step-content .step-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #1c1c1e;
+      }
+      .step-content .step-desc {
+        font-size: 11px;
+        color: #636366;
+        margin-top: 2px;
+        line-height: 1.5;
+      }
+
+      .section-divider {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8e8e93;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin: 20px 0 14px;
+        padding-top: 16px;
+        border-top: 0.5px solid #d1d1d6;
+      }
+
+      /* AUTH PANELS */
+      .auth-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .auth-panel {
+        background: #ffffff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .auth-panel h3 {
+        font-size: 13px;
+        font-weight: 600;
+        color: #000;
+        margin-bottom: 14px;
+      }
+
+      /* INFO BANNER */
+      .info-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #e8f4ff;
+        border: 0.5px solid #b3d8ff;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 12px;
+        color: #0055b3;
+        margin-bottom: 16px;
+      }
+      .info-banner.ai {
+        background: #f5f3ff;
+        border-color: #ddd6fe;
+        color: #5b21b6;
+      }
+      .info-banner i {
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      .select-hint {
+        font-size: 11px;
+        color: #aeaeb2;
+        margin-top: 4px;
+      }
+
+      /* Loading spinner overlay inside button */
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Copy button */
+      .copy-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        background: #f0f0f0;
+        color: #3c3c43;
+        border: 0.5px solid #c7c7cc;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.1s;
+      }
+      .copy-btn:hover {
+        background: #e0e0e0;
+      }
+      .copy-btn i {
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <nav class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-name">Career Tracker</div>
+          <div class="brand-sub">API Tester</div>
+        </div>
+
+        <div class="user-chip" id="user-chip">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div class="user-chip-info">
+            <div class="user-chip-name" id="user-chip-name">—</div>
+            <div class="user-chip-label">Active user</div>
+          </div>
+        </div>
+
+        <div class="nav-section-label">Sections</div>
+        <button
+          class="nav-item active"
+          onclick="showPage('auth')"
+          id="nav-auth"
+        >
+          <i class="ti ti-shield-lock"></i> Auth
+        </button>
+        <button class="nav-item" onclick="showPage('users')" id="nav-users">
+          <i class="ti ti-users"></i> Users
+        </button>
+        <button class="nav-item" onclick="showPage('resumes')" id="nav-resumes">
+          <i class="ti ti-file-cv"></i> Resumes
+        </button>
+        <button class="nav-item" onclick="showPage('skills')" id="nav-skills">
+          <i class="ti ti-code"></i> Skills
+        </button>
+        <button class="nav-item" onclick="showPage('jobs')" id="nav-jobs">
+          <i class="ti ti-briefcase"></i> Jobs
+        </button>
+        <button class="nav-item" onclick="showPage('matches')" id="nav-matches">
+          <i class="ti ti-link"></i> Job matches
+        </button>
+        <button
+          class="nav-item"
+          onclick="showPage('roadmaps')"
+          id="nav-roadmaps"
+        >
+          <i class="ti ti-map"></i> Roadmaps
+        </button>
+
+        <div class="nav-ai-label"><span class="ai-dot"></span> AI Features</div>
+        <button
+          class="nav-item ai-item"
+          onclick="showPage('ai-roadmap')"
+          id="nav-ai-roadmap"
+        >
+          <i class="ti ti-sparkles"></i> AI Roadmap
+        </button>
+        <button
+          class="nav-item ai-item"
+          onclick="showPage('ai-cover')"
+          id="nav-ai-cover"
+        >
+          <i class="ti ti-file-text"></i> Cover Letter
+        </button>
+        <button
+          class="nav-item ai-item"
+          onclick="showPage('ai-interview')"
+          id="nav-ai-interview"
+        >
+          <i class="ti ti-message-question"></i> Interview Prep
+        </button>
+      </nav>
+
+      <!-- MAIN -->
+      <div class="main">
+        <!-- ── AUTH ── -->
+        <div class="page active" id="page-auth">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Authentication</h2>
+              <p>Register or log in — your user ID is saved automatically</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="auth-split">
+              <div class="auth-panel">
+                <h3>Register</h3>
+                <div class="field">
+                  <label>Name</label><input id="r-name" placeholder="Kashmir" />
+                </div>
+                <div class="field">
+                  <label>Email</label
+                  ><input id="r-email" placeholder="k@test.com" />
+                </div>
+                <div class="field">
+                  <label>Password</label
+                  ><input id="r-pass" type="password" placeholder="••••••" />
+                </div>
+                <button class="submit-btn" onclick="authCall('register')">
+                  <i class="ti ti-user-plus"></i> Register
+                </button>
+              </div>
+              <div class="auth-panel">
+                <h3>Login</h3>
+                <div class="field">
+                  <label>Email</label
+                  ><input id="l-email" placeholder="k@test.com" />
+                </div>
+                <div class="field">
+                  <label>Password</label
+                  ><input id="l-pass" type="password" placeholder="••••••" />
+                </div>
+                <button class="submit-btn" onclick="authCall('login')">
+                  <i class="ti ti-login"></i> Login
+                </button>
+              </div>
+            </div>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-auth"></span> Response
+              </div>
+              <pre class="response" id="res-auth">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── USERS ── -->
+        <div class="page" id="page-users">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Users</h2>
+              <p>Fetch all registered users</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <button
+              class="submit-btn dark"
+              onclick="
+                doCall('GET', '/users', null, 'users', (r) => populateUsers(r))
+              "
+            >
+              <i class="ti ti-refresh"></i> Fetch all users
+            </button>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-users"></span> Response
+              </div>
+              <pre class="response" id="res-users">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── RESUMES ── -->
+        <div class="page" id="page-resumes">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Resumes</h2>
+              <p>Upload resumes with ATS scores</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="info-banner">
+              <i class="ti ti-info-circle"></i> User is pre-selected from your
+              active session. Log in first if empty.
+            </div>
+            <div class="field">
+              <label>User <span class="auto-badge">auto-filled</span></label>
+              <select id="res-uid">
+                <option value="">— select user —</option>
+              </select>
+              <div class="select-hint">
+                Populated after login or fetching users
+              </div>
+            </div>
+            <div class="field">
+              <label>File name</label
+              ><input id="res-name" placeholder="resume.pdf" />
+            </div>
+            <div class="field">
+              <label>File URL</label
+              ><input id="res-url" placeholder="https://…" />
+            </div>
+            <div class="field">
+              <label>ATS score</label
+              ><input
+                id="res-ats"
+                type="number"
+                placeholder="85"
+                min="0"
+                max="100"
+              />
+            </div>
+            <button
+              class="submit-btn"
+              onclick="
+                doCall(
+                  'POST',
+                  '/resumes',
+                  {
+                    userId: sv('res-uid'),
+                    fileName: g('res-name'),
+                    fileUrl: g('res-url'),
+                    atsScore: +g('res-ats'),
+                  },
+                  'resumes',
+                )
+              "
+            >
+              <i class="ti ti-upload"></i> Add resume
+            </button>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-resumes"></span> Response
+              </div>
+              <pre class="response" id="res-resumes">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SKILLS ── -->
+        <div class="page" id="page-skills">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Skills</h2>
+              <p>Add skills and assign them to users</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="field">
+              <label>Skill name</label
+              ><input id="sk-name" placeholder="React" />
+            </div>
+            <div class="btn-row">
+              <button
+                class="submit-btn"
+                onclick="
+                  doCall(
+                    'POST',
+                    '/skills',
+                    { name: g('sk-name') },
+                    'skills',
+                    (r) => {
+                      addSkillOption(r);
+                      fetchAndPopulateSkills();
+                    },
+                  )
+                "
+              >
+                <i class="ti ti-plus"></i> Add skill
+              </button>
+              <button
+                class="get-btn"
+                onclick="
+                  doCall('GET', '/skills', null, 'skills', (r) =>
+                    populateSkills(r),
+                  )
+                "
+              >
+                <i class="ti ti-list"></i> Get all skills
+              </button>
+            </div>
+            <div class="section-divider">Assign skill to user</div>
+            <div class="two-col">
+              <div class="field">
+                <label>User <span class="auto-badge">auto-filled</span></label>
+                <select id="us-uid">
+                  <option value="">— select user —</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Skill <span class="auto-badge">auto-filled</span></label>
+                <select id="us-sid">
+                  <option value="">— select skill —</option>
+                </select>
+                <div class="select-hint">Add a skill above first</div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Level (1–5)</label
+              ><input id="us-lvl" type="number" value="1" min="1" max="5" />
+            </div>
+            <button
+              class="submit-btn"
+              onclick="
+                doCall(
+                  'POST',
+                  '/user-skills',
+                  {
+                    userId: sv('us-uid'),
+                    skillId: sv('us-sid'),
+                    level: +g('us-lvl'),
+                  },
+                  'skills',
+                )
+              "
+            >
+              <i class="ti ti-user-check"></i> Assign skill
+            </button>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-skills"></span> Response
+              </div>
+              <pre class="response" id="res-skills">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── JOBS ── -->
+        <div class="page" id="page-jobs">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Jobs</h2>
+              <p>Add listings and view all openings</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="field">
+              <label>Title</label
+              ><input id="j-title" placeholder="Frontend Developer" />
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>Company</label><input id="j-co" placeholder="Google" />
+              </div>
+              <div class="field">
+                <label>Location</label><input id="j-loc" placeholder="Remote" />
+              </div>
+            </div>
+            <div class="btn-row">
+              <button
+                class="submit-btn"
+                onclick="
+                  doCall(
+                    'POST',
+                    '/jobs',
+                    {
+                      title: g('j-title'),
+                      company: g('j-co'),
+                      location: g('j-loc'),
+                    },
+                    'jobs',
+                    (r) => {
+                      addJobOption(r);
+                      fetchAndPopulateJobs();
+                    },
+                  )
+                "
+              >
+                <i class="ti ti-plus"></i> Add job
+              </button>
+              <button
+                class="get-btn"
+                onclick="
+                  doCall('GET', '/jobs', null, 'jobs', (r) => populateJobs(r))
+                "
+              >
+                <i class="ti ti-list"></i> Get all jobs
+              </button>
+            </div>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-jobs"></span> Response
+              </div>
+              <pre class="response" id="res-jobs">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MATCHES ── -->
+        <div class="page" id="page-matches">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Job matches</h2>
+              <p>Match a user to a job listing</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="two-col">
+              <div class="field">
+                <label>User <span class="auto-badge">auto-filled</span></label>
+                <select id="m-uid">
+                  <option value="">— select user —</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Job <span class="auto-badge">auto-filled</span></label>
+                <select id="m-jid">
+                  <option value="">— select job —</option>
+                </select>
+                <div class="select-hint">Add jobs first</div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Match score</label
+              ><input
+                id="m-score"
+                type="number"
+                placeholder="90"
+                min="0"
+                max="100"
+              />
+            </div>
+            <button
+              class="submit-btn"
+              onclick="
+                doCall(
+                  'POST',
+                  '/job-matches',
+                  {
+                    userId: sv('m-uid'),
+                    jobId: sv('m-jid'),
+                    matchScore: +g('m-score'),
+                  },
+                  'matches',
+                )
+              "
+            >
+              <i class="ti ti-link"></i> Create match
+            </button>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-matches"></span> Response
+              </div>
+              <pre class="response" id="res-matches">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ROADMAPS ── -->
+        <div class="page" id="page-roadmaps">
+          <div class="page-header">
+            <div class="page-header-text">
+              <h2>Roadmaps</h2>
+              <p>Create career roadmaps and add steps</p>
+            </div>
+          </div>
+          <div class="page-body">
+            <div class="field">
+              <label>User <span class="auto-badge">auto-filled</span></label>
+              <select id="rd-uid">
+                <option value="">— select user —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Roadmap title</label
+              ><input id="rd-title" placeholder="Become a full-stack dev" />
+            </div>
+            <button
+              class="submit-btn"
+              onclick="
+                doCall(
+                  'POST',
+                  '/roadmaps',
+                  { userId: sv('rd-uid'), title: g('rd-title') },
+                  'roadmaps',
+                  (r) => addRoadmapOption(r),
+                )
+              "
+            >
+              <i class="ti ti-map-plus"></i> Create roadmap
+            </button>
+            <div class="section-divider">Add a step</div>
+            <div class="field">
+              <label>Roadmap <span class="auto-badge">auto-filled</span></label>
+              <select id="st-rid">
+                <option value="">— select roadmap —</option>
+              </select>
+              <div class="select-hint">Create a roadmap above first</div>
+            </div>
+            <div class="field">
+              <label>Step title</label
+              ><input id="st-title" placeholder="Learn Node.js" />
+            </div>
+            <button
+              class="submit-btn"
+              onclick="
+                doCall(
+                  'POST',
+                  '/roadmap-steps',
+                  {
+                    roadmapId: sv('st-rid'),
+                    title: g('st-title'),
+                    status: 'PENDING',
+                    progress: 0,
+                  },
+                  'roadmaps',
+                )
+              "
+            >
+              <i class="ti ti-plus"></i> Add step
+            </button>
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-roadmaps"></span> Response
+              </div>
+              <pre class="response" id="res-roadmaps">
+Response will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI ROADMAP ── -->
+        <div class="page" id="page-ai-roadmap">
+          <div class="page-header ai-header">
+            <div class="page-header-text">
+              <h2>AI Roadmap Generator</h2>
+              <p>Gemini generates 6 steps and saves them to your database</p>
+            </div>
+            <span class="ai-badge"><i class="ti ti-sparkles"></i> Gemini</span>
+          </div>
+          <div class="page-body">
+            <div class="info-banner ai">
+              <i class="ti ti-sparkles"></i>
+              Gemini will create a full 6-step career roadmap and auto-save it
+              to DB
+            </div>
+            <div class="field">
+              <label>User <span class="auto-badge">auto-filled</span></label>
+              <select id="ai-uid">
+                <option value="">— select user —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Career goal</label>
+              <input
+                id="ai-title"
+                placeholder="e.g. Become a Full Stack Developer"
+              />
+            </div>
+            <div class="field">
+              <label
+                >Current skills
+                <span style="font-weight: 400; color: #8e8e93"
+                  >(optional, comma separated)</span
+                ></label
+              >
+              <input id="ai-skills" placeholder="e.g. HTML, CSS, JavaScript" />
+            </div>
+            <button
+              class="submit-btn ai-btn"
+              id="btn-ai-roadmap"
+              onclick="generateRoadmap()"
+            >
+              <i class="ti ti-sparkles"></i> Generate with Gemini
+            </button>
+
+            <!-- Steps preview -->
+            <div class="steps-preview" id="steps-preview"></div>
+
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-ai-roadmap"></span> Raw
+                Response
+              </div>
+              <pre class="response ai-response" id="res-ai-roadmap">
+Your AI-generated roadmap will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI COVER LETTER ── -->
+        <div class="page" id="page-ai-cover">
+          <div class="page-header ai-header">
+            <div class="page-header-text">
+              <h2>Cover Letter Generator</h2>
+              <p>Gemini writes a professional cover letter for any job</p>
+            </div>
+            <span class="ai-badge"><i class="ti ti-sparkles"></i> Gemini</span>
+          </div>
+          <div class="page-body">
+            <div class="info-banner ai">
+              <i class="ti ti-file-text"></i>
+              Fill in your details and the job info — Gemini will write a
+              tailored 3-paragraph cover letter
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>Your name</label
+                ><input id="cl-name" placeholder="Kashmir Singh" />
+              </div>
+              <div class="field">
+                <label>Job title applying for</label
+                ><input id="cl-job" placeholder="Backend Developer" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Company name</label
+              ><input id="cl-company" placeholder="Google" />
+            </div>
+            <div class="field">
+              <label
+                >Your skills
+                <span style="font-weight: 400; color: #8e8e93"
+                  >(comma separated)</span
+                ></label
+              >
+              <input
+                id="cl-skills"
+                placeholder="Node.js, PostgreSQL, REST APIs"
+              />
+            </div>
+            <div class="field">
+              <label
+                >Brief experience / background
+                <span style="font-weight: 400; color: #8e8e93"
+                  >(optional)</span
+                ></label
+              >
+              <textarea
+                id="cl-exp"
+                placeholder="2 years building REST APIs, interned at a fintech startup…"
+              ></textarea>
+            </div>
+            <div class="btn-row">
+              <button
+                class="submit-btn ai-btn"
+                id="btn-ai-cover"
+                onclick="generateCoverLetter()"
+              >
+                <i class="ti ti-file-text"></i> Generate Cover Letter
+              </button>
+              <button
+                class="copy-btn"
+                id="copy-cl-btn"
+                onclick="copyCoverLetter()"
+                style="display: none"
+              >
+                <i class="ti ti-copy"></i> Copy
+              </button>
+            </div>
+
+            <div class="cover-letter-out" id="cover-letter-out"></div>
+
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-ai-cover"></span> Raw Response
+              </div>
+              <pre class="response ai-response" id="res-ai-cover">
+Your cover letter will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI INTERVIEW PREP ── -->
+        <div class="page" id="page-ai-interview">
+          <div class="page-header ai-header">
+            <div class="page-header-text">
+              <h2>Interview Prep</h2>
+              <p>Gemini generates 8 custom interview questions with tips</p>
+            </div>
+            <span class="ai-badge"><i class="ti ti-sparkles"></i> Gemini</span>
+          </div>
+          <div class="page-body">
+            <div class="info-banner ai">
+              <i class="ti ti-message-question"></i>
+              Get 8 tailored interview questions — mix of technical and
+              behavioral — with answer tips
+            </div>
+            <div class="field">
+              <label>Job title</label
+              ><input id="iq-job" placeholder="Full Stack Developer" />
+            </div>
+            <div class="field">
+              <label
+                >Key skills to focus on
+                <span style="font-weight: 400; color: #8e8e93"
+                  >(comma separated)</span
+                ></label
+              >
+              <input
+                id="iq-skills"
+                placeholder="React, Node.js, System Design"
+              />
+            </div>
+            <div class="field">
+              <label>Difficulty level</label>
+              <select id="iq-diff">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate" selected>Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+            <button
+              class="submit-btn ai-btn"
+              id="btn-ai-interview"
+              onclick="generateInterviewQuestions()"
+            >
+              <i class="ti ti-message-question"></i> Generate Questions
+            </button>
+
+            <div class="questions-list" id="questions-list"></div>
+
+            <div class="response-box">
+              <div class="response-label">
+                <span class="status-dot" id="dot-ai-interview"></span> Raw
+                Response
+              </div>
+              <pre class="response ai-response" id="res-ai-interview">
+Your interview questions will appear here…</pre
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /main -->
+    </div>
+    <!-- /app -->
+
+    <script>
+      const API = "http://localhost:3000";
+
+      const g = (id) => document.getElementById(id).value;
+      const sv = (id) => document.getElementById(id).value;
+      const el = (id) => document.getElementById(id);
+
+      const store = {
+        activeUser: null,
+        users: [],
+        skills: [],
+        jobs: [],
+        roadmaps: [],
+      };
+
+      // ── NAV ──────────────────────────────────────────────
+      function showPage(name) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        el("page-" + name).classList.add("active");
+        el("nav-" + name).classList.add("active");
+      }
+
+      // ── CORE FETCH ───────────────────────────────────────
+      async function doCall(method, path, body, page, onSuccess) {
+        const pre = el("res-" + page);
+        const dot = el("dot-" + page);
+        pre.textContent = "Loading…";
+        dot.className = "status-dot loading";
+        try {
+          const res = await fetch(API + path, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: body ? JSON.stringify(body) : null,
+          });
+          const data = await res.json();
+          pre.textContent = JSON.stringify(data, null, 2);
+          dot.className = res.ok ? "status-dot ok" : "status-dot err";
+          if (res.ok && onSuccess) onSuccess(data);
+        } catch (e) {
+          pre.textContent =
+            "Error: " +
+            e.message +
+            "\n\nMake sure your backend is running on " +
+            API;
+          dot.className = "status-dot err";
+        }
+      }
+
+      // ── AUTH ─────────────────────────────────────────────
+      async function authCall(type) {
+        const body =
+          type === "register"
+            ? { name: g("r-name"), email: g("r-email"), password: g("r-pass") }
+            : { email: g("l-email"), password: g("l-pass") };
+        await doCall("POST", "/auth/" + type, body, "auth", (data) => {
+          const user = data.user || data;
+          if (user && user.id) {
+            setActiveUser(user);
+            addUserOption(user);
+          }
+        });
+      }
+
+      // ── ACTIVE USER ───────────────────────────────────────
+      function setActiveUser(user) {
+        store.activeUser = user;
+        const name = user.name || user.email || "User";
+        el("user-chip").classList.add("visible");
+        el("user-chip-name").textContent = name;
+        el("user-avatar").textContent = name.charAt(0).toUpperCase();
+        ["res-uid", "us-uid", "m-uid", "rd-uid", "ai-uid"].forEach((sid) => {
+          const sel = el(sid);
+          if (sel) {
+            if (![...sel.options].some((o) => o.value === user.id)) {
+              sel.add(new Option(name, user.id));
+            }
+            sel.value = user.id;
+          }
+        });
+      }
+
+      // ── POPULATE HELPERS ──────────────────────────────────
+      function addOption(selectId, value, label) {
+        const sel = el(selectId);
+        if (!sel) return;
+        if ([...sel.options].some((o) => o.value === value)) return;
+        sel.add(new Option(label, value));
+      }
+
+      function populateSelect(selectId, items, valueFn, labelFn) {
+        const sel = el(selectId);
+        if (!sel) return;
+        const current = sel.value;
+        sel.innerHTML = '<option value="">— select —</option>';
+        items.forEach((item) =>
+          sel.add(new Option(labelFn(item), valueFn(item))),
+        );
+        if (current) sel.value = current;
+      }
+
+      function addUserOption(user) {
+        const name = user.name || user.email || user.id;
+        ["res-uid", "us-uid", "m-uid", "rd-uid", "ai-uid"].forEach((sid) =>
+          addOption(sid, user.id, name),
+        );
+        if (!store.users.find((u) => u.id === user.id)) store.users.push(user);
+      }
+
+      function populateUsers(data) {
+        const users = Array.isArray(data) ? data : data.users || [];
+        store.users = users;
+        const selIds = ["res-uid", "us-uid", "m-uid", "rd-uid", "ai-uid"];
+        selIds.forEach((sid) =>
+          populateSelect(
+            sid,
+            users,
+            (u) => u.id,
+            (u) => u.name || u.email || u.id,
+          ),
+        );
+        if (store.activeUser) {
+          selIds.forEach((sid) => {
+            const s = el(sid);
+            if (s) s.value = store.activeUser.id;
+          });
+        }
+      }
+
+      function addSkillOption(skill) {
+        const s = skill.skill || skill;
+        if (s && s.id) {
+          addOption("us-sid", s.id, s.name);
+          if (!store.skills.find((x) => x.id === s.id)) store.skills.push(s);
+        }
+      }
+
+      function populateSkills(data) {
+        const skills = Array.isArray(data) ? data : data.skills || [];
+        store.skills = skills;
+        populateSelect(
+          "us-sid",
+          skills,
+          (s) => s.id,
+          (s) => s.name,
+        );
+      }
+
+      async function fetchAndPopulateSkills() {
+        try {
+          const res = await fetch(API + "/skills");
+          const data = await res.json();
+          populateSkills(data);
+        } catch {}
+      }
+
+      function addJobOption(job) {
+        const j = job.job || job;
+        if (j && j.id) {
+          const label =
+            (j.title || "Job") + (j.company ? " @ " + j.company : "");
+          addOption("m-jid", j.id, label);
+          if (!store.jobs.find((x) => x.id === j.id)) store.jobs.push(j);
+        }
+      }
+
+      function populateJobs(data) {
+        const jobs = Array.isArray(data) ? data : data.jobs || [];
+        store.jobs = jobs;
+        populateSelect(
+          "m-jid",
+          jobs,
+          (j) => j.id,
+          (j) => (j.title || "Job") + (j.company ? " @ " + j.company : ""),
+        );
+      }
+
+      async function fetchAndPopulateJobs() {
+        try {
+          const res = await fetch(API + "/jobs");
+          const data = await res.json();
+          populateJobs(data);
+        } catch {}
+      }
+
+      function addRoadmapOption(data) {
+        const rm = data.roadmap || data;
+        if (rm && rm.id) {
+          addOption("st-rid", rm.id, rm.title || "Roadmap");
+          if (!store.roadmaps.find((x) => x.id === rm.id))
+            store.roadmaps.push(rm);
+        }
+      }
+
+      // ── AI BUTTON LOADING STATE ───────────────────────────
+      function setAiLoading(btnId, loading) {
+        const btn = el(btnId);
+        if (loading) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span> Generating…';
+        } else {
+          btn.disabled = false;
+        }
+      }
+
+      // ── AI: GENERATE ROADMAP ──────────────────────────────
+      async function generateRoadmap() {
+        const userId = sv("ai-uid");
+        const title = g("ai-title");
+        const skillsRaw = g("ai-skills");
+        const currentSkills = skillsRaw
+          ? skillsRaw
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        if (!userId) return alert("Please select a user first");
+        if (!title) return alert("Please enter a career goal");
+
+        setAiLoading("btn-ai-roadmap", true);
+        el("btn-ai-roadmap").innerHTML =
+          '<span class="spinner"></span> Generating…';
+        el("steps-preview").className = "steps-preview";
+        el("dot-ai-roadmap").className = "status-dot loading";
+
+        try {
+          const res = await fetch(API + "/ai/generate-roadmap", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, title, currentSkills }),
+          });
+          const data = await res.json();
+          el("res-ai-roadmap").textContent = JSON.stringify(data, null, 2);
+          el("dot-ai-roadmap").className = res.ok
+            ? "status-dot ok"
+            : "status-dot err";
+
+          if (res.ok && data.roadmap) {
+            addRoadmapOption(data.roadmap);
+            // Show steps preview
+            const steps = data.roadmap.steps || [];
+            const preview = el("steps-preview");
+            preview.innerHTML = steps
+              .map(
+                (s, i) => `
+          <div class="step-card">
+            <div class="step-num">${i + 1}</div>
+            <div class="step-content">
+              <div class="step-title">${s.title}</div>
+              <div class="step-desc">${s.description || ""}</div>
+            </div>
+          </div>
+        `,
+              )
+              .join("");
+            preview.className = "steps-preview visible";
+          }
+        } catch (e) {
+          el("res-ai-roadmap").textContent = "Error: " + e.message;
+          el("dot-ai-roadmap").className = "status-dot err";
+        }
+
+        setAiLoading("btn-ai-roadmap", false);
+        el("btn-ai-roadmap").innerHTML =
+          '<i class="ti ti-sparkles"></i> Generate with Gemini';
+      }
+
+      // ── AI: GENERATE COVER LETTER ─────────────────────────
+      async function generateCoverLetter() {
+        const userName = g("cl-name");
+        const jobTitle = g("cl-job");
+        const company = g("cl-company");
+        const skillsRaw = g("cl-skills");
+        const experience = g("cl-exp");
+        const skills = skillsRaw
+          ? skillsRaw
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        if (!userName) return alert("Please enter your name");
+        if (!jobTitle) return alert("Please enter the job title");
+        if (!company) return alert("Please enter the company name");
+
+        setAiLoading("btn-ai-cover", true);
+        el("btn-ai-cover").innerHTML = '<span class="spinner"></span> Writing…';
+        el("cover-letter-out").className = "cover-letter-out";
+        el("copy-cl-btn").style.display = "none";
+        el("dot-ai-cover").className = "status-dot loading";
+
+        try {
+          const res = await fetch(API + "/ai/generate-cover-letter", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userName,
+              jobTitle,
+              company,
+              skills,
+              experience,
+            }),
+          });
+          const data = await res.json();
+          el("res-ai-cover").textContent = JSON.stringify(data, null, 2);
+          el("dot-ai-cover").className = res.ok
+            ? "status-dot ok"
+            : "status-dot err";
+
+          if (res.ok && data.coverLetter) {
+            el("cover-letter-out").textContent = data.coverLetter;
+            el("cover-letter-out").className = "cover-letter-out visible";
+            el("copy-cl-btn").style.display = "inline-flex";
+          }
+        } catch (e) {
+          el("res-ai-cover").textContent = "Error: " + e.message;
+          el("dot-ai-cover").className = "status-dot err";
+        }
+
+        setAiLoading("btn-ai-cover", false);
+        el("btn-ai-cover").innerHTML =
+          '<i class="ti ti-file-text"></i> Generate Cover Letter';
+      }
+
+      function copyCoverLetter() {
+        const text = el("cover-letter-out").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = el("copy-cl-btn");
+          btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="ti ti-copy"></i> Copy';
+          }, 2000);
+        });
+      }
+
+      // ── AI: GENERATE INTERVIEW QUESTIONS ──────────────────
+      async function generateInterviewQuestions() {
+        const jobTitle = g("iq-job");
+        const skillsRaw = g("iq-skills");
+        const difficulty = sv("iq-diff");
+        const skills = skillsRaw
+          ? skillsRaw
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        if (!jobTitle) return alert("Please enter a job title");
+
+        setAiLoading("btn-ai-interview", true);
+        el("btn-ai-interview").innerHTML =
+          '<span class="spinner"></span> Generating…';
+        el("questions-list").className = "questions-list";
+        el("dot-ai-interview").className = "status-dot loading";
+
+        try {
+          const res = await fetch(API + "/ai/generate-interview-questions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobTitle, skills, difficulty }),
+          });
+          const data = await res.json();
+          el("res-ai-interview").textContent = JSON.stringify(data, null, 2);
+          el("dot-ai-interview").className = res.ok
+            ? "status-dot ok"
+            : "status-dot err";
+
+          if (res.ok && data.questions) {
+            const list = el("questions-list");
+            list.innerHTML = data.questions
+              .map(
+                (q, i) => `
+          <div class="question-card">
+            <div class="q-header">
+              <span class="q-type-badge ${q.type}">${q.type}</span>
+              <span style="font-size:11px;color:#8e8e93">Q${i + 1}</span>
+            </div>
+            <div class="q-text">${q.question}</div>
+            <div class="q-tip"><i class="ti ti-bulb"></i> ${q.tip}</div>
+          </div>
+        `,
+              )
+              .join("");
+            list.className = "questions-list visible";
+          }
+        } catch (e) {
+          el("res-ai-interview").textContent = "Error: " + e.message;
+          el("dot-ai-interview").className = "status-dot err";
+        }
+
+        setAiLoading("btn-ai-interview", false);
+        el("btn-ai-interview").innerHTML =
+          '<i class="ti ti-message-question"></i> Generate Questions';
+      }
+    </script>
+  </body>
+</html>
