@@ -203,33 +203,61 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    // 2. Extract text from PDF using pdf2json (pure Node, no Python needed)
+    // 2. Extract text from PDF using pdf2json safely
     let extractedText = "";
     await new Promise((resolve) => {
       const pdfParser = new PDFParser();
-      pdfParser.on("pdfParser_dataError", () => {
+
+      pdfParser.on("pdfParser_dataError", (errData) => {
+        console.error("pdf2json Error:", errData.parserError);
         extractedText = "Could not extract text from PDF";
         resolve();
       });
+
       pdfParser.on("pdfParser_dataReady", (pdfData) => {
         try {
-          extractedText = pdfData.Pages.map((page) =>
-            page.Texts.map((t) =>
-              decodeURIComponent(t.R.map((r) => r.T).join("")),
-            ).join(" "),
-          )
-            .join("\n")
-            .trim();
-        } catch {
+          const pagesText = [];
+
+          for (const page of pdfData.Pages) {
+            const pageLines = [];
+            for (const textObj of page.Texts) {
+              if (textObj.R && Array.isArray(textObj.R)) {
+                const runText = textObj.R.map((r) => {
+                  try {
+                    return decodeURIComponent(r.T || "");
+                  } catch {
+                    return r.T || "";
+                  }
+                }).join("");
+                pageLines.push(runText);
+              }
+            }
+            pagesText.push(pageLines.join(" "));
+          }
+
+          extractedText = pagesText.join("\n").trim();
+        } catch (parseError) {
+          console.error("Structural processing error:", parseError);
           extractedText = "Could not extract text from PDF";
         }
         resolve();
       });
+
       pdfParser.parseBuffer(req.file.buffer);
     });
 
+    console.log("Extracted text length:", extractedText.length);
+
+    // Stop execution early if text conversion completely failed
+    if (!extractedText || extractedText === "Could not extract text from PDF") {
+      return res.status(422).json({
+        error:
+          "The file text structure could not be parsed. Please verify this is a non-encrypted, text-based PDF document.",
+      });
+    }
+
     // 3. Ask Gemini to analyze resume and give ATS score
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     const prompt = `
 You are an ATS (Applicant Tracking System) expert. Analyze this resume text and respond ONLY with valid JSON, no markdown, no backticks.
 
@@ -266,7 +294,7 @@ Format:
       },
     });
 
-    // 5. Save analysis to DB — stringify arrays so Prisma (String field) accepts them
+    // 5. Save analysis to DB — stringify arrays so Prisma accepts them
     const savedAnalysis = await prisma.resumeAnalysis.create({
       data: {
         grammarScore: analysis.grammarScore,
@@ -310,7 +338,7 @@ app.get("/resumes/user/:userId", async (req, res) => {
   try {
     const resumes = await prisma.resume.findMany({
       where: { userId: req.params.userId },
-      include: { analysis: true }, // one-to-one → singular
+      include: { analysis: true },
       orderBy: { createdAt: "desc" },
     });
     const parsed = resumes.map((r) => ({
@@ -328,7 +356,7 @@ app.get("/resumes/:id", async (req, res) => {
   try {
     const resume = await prisma.resume.findUnique({
       where: { id: req.params.id },
-      include: { analysis: true }, // one-to-one → singular
+      include: { analysis: true },
     });
     if (!resume) return res.status(404).json({ error: "Resume not found" });
     res.json({
@@ -887,7 +915,7 @@ Format:
 ]
     `.trim();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const clean = text.replace(/```json|```/g, "").trim();
@@ -947,7 +975,7 @@ Keep it concise (3 paragraphs), professional, and enthusiastic.
 Respond ONLY with the cover letter text, no subject line, no extra commentary.
     `.trim();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     const result = await model.generateContent(prompt);
     const coverLetter = result.response.text().trim();
 
@@ -989,7 +1017,7 @@ Format:
 ]
     `.trim();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const clean = text.replace(/```json|```/g, "").trim();
