@@ -149,7 +149,6 @@
         color: #0a84ff;
       }
 
-      /* AI nav items */
       .nav-item.ai-item.active {
         border-left-color: #7c3aed;
       }
@@ -228,7 +227,6 @@
         margin-top: 2px;
       }
 
-      /* AI page header special */
       .page-header.ai-header {
         background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
         border-bottom-color: #4c1d95;
@@ -239,6 +237,7 @@
       .page-header.ai-header .page-header-text p {
         color: #c4b5fd;
       }
+
       .ai-badge {
         display: inline-flex;
         align-items: center;
@@ -319,6 +318,27 @@
       .field input::placeholder,
       .field textarea::placeholder {
         color: #aeaeb2;
+      }
+
+      /* File input styling */
+      .field input[type="file"] {
+        padding: 7px 11px;
+        cursor: pointer;
+        color: #3c3c43;
+      }
+      .field input[type="file"]::-webkit-file-upload-button {
+        background: #f0f0f0;
+        border: 0.5px solid #c7c7cc;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        color: #3c3c43;
+        margin-right: 10px;
+      }
+      .field input[type="file"]::-webkit-file-upload-button:hover {
+        background: #e0e0e0;
       }
 
       .two-col {
@@ -461,13 +481,186 @@
         max-height: 260px;
         overflow-y: auto;
       }
-
-      /* AI response special */
       pre.response.ai-response {
         background: #faf5ff;
         border-color: #e9d5ff;
         color: #2e1065;
         max-height: 320px;
+      }
+
+      /* ── ATS RESULT CARD ── */
+      .ats-result-card {
+        display: none;
+        margin-top: 16px;
+        background: #fff;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .ats-result-card.visible {
+        display: block;
+      }
+
+      .ats-card-header {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #f0f9ff, #e8f4ff);
+        border-bottom: 0.5px solid #d1d1d6;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ats-card-header i {
+        font-size: 16px;
+        color: #0a84ff;
+      }
+      .ats-card-header span {
+        font-size: 13px;
+        font-weight: 600;
+        color: #000;
+      }
+
+      .ats-scores-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        border-bottom: 0.5px solid #d1d1d6;
+      }
+      .ats-score-cell {
+        padding: 14px 10px;
+        text-align: center;
+        border-right: 0.5px solid #d1d1d6;
+      }
+      .ats-score-cell:last-child {
+        border-right: none;
+      }
+
+      .ats-score-value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .ats-score-value.blue {
+        color: #0a84ff;
+      }
+      .ats-score-value.green {
+        color: #34c759;
+      }
+      .ats-score-value.orange {
+        color: #ff9f0a;
+      }
+      .ats-score-value.purple {
+        color: #bf5af2;
+      }
+
+      .ats-score-bar {
+        height: 4px;
+        background: #f0f0f0;
+        border-radius: 2px;
+        margin: 6px auto 5px;
+        width: 60%;
+        overflow: hidden;
+      }
+      .ats-score-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.6s ease;
+      }
+      .ats-score-bar-fill.blue {
+        background: #0a84ff;
+      }
+      .ats-score-bar-fill.green {
+        background: #34c759;
+      }
+      .ats-score-bar-fill.orange {
+        background: #ff9f0a;
+      }
+      .ats-score-bar-fill.purple {
+        background: #bf5af2;
+      }
+
+      .ats-score-label {
+        font-size: 10px;
+        color: #8e8e93;
+        font-weight: 500;
+      }
+
+      .ats-feedback-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+      .ats-feedback-col {
+        padding: 14px 16px;
+      }
+      .ats-feedback-col:first-child {
+        border-right: 0.5px solid #d1d1d6;
+      }
+      .ats-feedback-heading {
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ats-feedback-heading.strengths {
+        color: #34c759;
+      }
+      .ats-feedback-heading.weaknesses {
+        color: #ff3b30;
+      }
+
+      .ats-feedback-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .ats-feedback-list li {
+        font-size: 12px;
+        color: #3c3c43;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        line-height: 1.45;
+      }
+      .ats-feedback-list li::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+      .ats-feedback-col.str li::before {
+        background: #34c759;
+      }
+      .ats-feedback-col.wk li::before {
+        background: #ff3b30;
+      }
+
+      /* File name display */
+      .file-name-tag {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+        padding: 5px 10px;
+        background: #f5f5f7;
+        border: 0.5px solid #d1d1d6;
+        border-radius: 6px;
+        font-size: 11px;
+        color: #3c3c43;
+      }
+      .file-name-tag.visible {
+        display: inline-flex;
+      }
+      .file-name-tag i {
+        font-size: 13px;
+        color: #636366;
       }
 
       /* Cover letter output */
@@ -651,7 +844,6 @@
         margin-top: 4px;
       }
 
-      /* Loading spinner overlay inside button */
       .spinner {
         display: inline-block;
         width: 12px;
@@ -667,7 +859,6 @@
         }
       }
 
-      /* Copy button */
       .copy-btn {
         display: inline-flex;
         align-items: center;
@@ -758,7 +949,7 @@
           onclick="showPage('ai-interview')"
           id="nav-ai-interview"
         >
-          <i class="ti ti-message-question"></i> Interview Prep
+          <i class="ti ti-message-question"></i>Interview Prep
         </button>
       </nav>
 
@@ -777,11 +968,12 @@
               <div class="auth-panel">
                 <h3>Register</h3>
                 <div class="field">
-                  <label>Name</label><input id="r-name" placeholder="Kashmir" />
+                  <label>Name</label>
+                  <input id="r-name" placeholder="Kashmir" />
                 </div>
                 <div class="field">
-                  <label>Email</label
-                  ><input id="r-email" placeholder="k@test.com" />
+                  <label>Email</label>
+                  <input id="r-email" placeholder="k@test.com" />
                 </div>
                 <div class="field">
                   <label>Password</label
@@ -794,8 +986,8 @@
               <div class="auth-panel">
                 <h3>Login</h3>
                 <div class="field">
-                  <label>Email</label
-                  ><input id="l-email" placeholder="k@test.com" />
+                  <label>Email</label>
+                  <input id="l-email" placeholder="k@test.com" />
                 </div>
                 <div class="field">
                   <label>Password</label
@@ -850,62 +1042,122 @@ Response will appear here…</pre
           <div class="page-header">
             <div class="page-header-text">
               <h2>Resumes</h2>
-              <p>Upload resumes with ATS scores</p>
+              <p>Upload a PDF — Gemini auto-analyzes and scores it</p>
             </div>
+            <span class="ai-badge"
+              ><i class="ti ti-sparkles"></i> AI Powered</span
+            >
           </div>
           <div class="page-body">
             <div class="info-banner">
-              <i class="ti ti-info-circle"></i> User is pre-selected from your
-              active session. Log in first if empty.
+              <i class="ti ti-info-circle"></i>
+              Upload a PDF resume — Gemini will extract the text and return an
+              ATS score with strengths &amp; weaknesses automatically.
             </div>
+
             <div class="field">
               <label>User <span class="auto-badge">auto-filled</span></label>
               <select id="res-uid">
                 <option value="">— select user —</option>
               </select>
-              <div class="select-hint">
-                Populated after login or fetching users
+              <div class="select-hint">Log in first to auto-select</div>
+            </div>
+
+            <div class="field">
+              <label>Resume PDF</label>
+              <input
+                type="file"
+                id="res-file"
+                accept=".pdf"
+                onchange="showFileName()"
+              />
+              <span class="file-name-tag" id="file-name-tag">
+                <i class="ti ti-file-type-pdf"></i>
+                <span id="file-name-text"></span>
+              </span>
+            </div>
+
+            <div class="btn-row">
+              <button
+                class="submit-btn ai-btn"
+                id="btn-upload-resume"
+                onclick="uploadResume()"
+              >
+                <i class="ti ti-upload"></i> Upload &amp; Analyze
+              </button>
+            </div>
+
+            <!-- ATS result card -->
+            <div class="ats-result-card" id="ats-result-card">
+              <div class="ats-card-header">
+                <i class="ti ti-chart-bar"></i>
+                <span>ATS Analysis Result</span>
+              </div>
+              <div class="ats-scores-grid">
+                <div class="ats-score-cell">
+                  <div class="ats-score-value blue" id="score-ats">—</div>
+                  <div class="ats-score-bar">
+                    <div
+                      class="ats-score-bar-fill blue"
+                      id="bar-ats"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="ats-score-label">ATS Score</div>
+                </div>
+                <div class="ats-score-cell">
+                  <div class="ats-score-value green" id="score-grammar">—</div>
+                  <div class="ats-score-bar">
+                    <div
+                      class="ats-score-bar-fill green"
+                      id="bar-grammar"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="ats-score-label">Grammar</div>
+                </div>
+                <div class="ats-score-cell">
+                  <div class="ats-score-value orange" id="score-format">—</div>
+                  <div class="ats-score-bar">
+                    <div
+                      class="ats-score-bar-fill orange"
+                      id="bar-format"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="ats-score-label">Formatting</div>
+                </div>
+                <div class="ats-score-cell">
+                  <div class="ats-score-value purple" id="score-keyword">—</div>
+                  <div class="ats-score-bar">
+                    <div
+                      class="ats-score-bar-fill purple"
+                      id="bar-keyword"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="ats-score-label">Keywords</div>
+                </div>
+              </div>
+              <div class="ats-feedback-grid">
+                <div class="ats-feedback-col str">
+                  <div class="ats-feedback-heading strengths">
+                    <i class="ti ti-circle-check"></i> Strengths
+                  </div>
+                  <ul class="ats-feedback-list" id="ats-strengths"></ul>
+                </div>
+                <div class="ats-feedback-col wk">
+                  <div class="ats-feedback-heading weaknesses">
+                    <i class="ti ti-circle-x"></i> Weaknesses
+                  </div>
+                  <ul class="ats-feedback-list" id="ats-weaknesses"></ul>
+                </div>
               </div>
             </div>
-            <div class="field">
-              <label>File name</label
-              ><input id="res-name" placeholder="resume.pdf" />
-            </div>
-            <div class="field">
-              <label>File URL</label
-              ><input id="res-url" placeholder="https://…" />
-            </div>
-            <div class="field">
-              <label>ATS score</label
-              ><input
-                id="res-ats"
-                type="number"
-                placeholder="85"
-                min="0"
-                max="100"
-              />
-            </div>
-            <button
-              class="submit-btn"
-              onclick="
-                doCall(
-                  'POST',
-                  '/resumes',
-                  {
-                    userId: sv('res-uid'),
-                    fileName: g('res-name'),
-                    fileUrl: g('res-url'),
-                    atsScore: +g('res-ats'),
-                  },
-                  'resumes',
-                )
-              "
-            >
-              <i class="ti ti-upload"></i> Add resume
-            </button>
+
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-resumes"></span> Response
+                <span class="status-dot" id="dot-resumes"></span> Raw Response
               </div>
               <pre class="response" id="res-resumes">
 Response will appear here…</pre
@@ -1019,7 +1271,7 @@ Response will appear here…</pre
             </div>
             <div class="two-col">
               <div class="field">
-                <label>Company</label><input id="j-co" placeholder="Google" />
+                <label>Company</label> <input id="j-co" placeholder="Google" />
               </div>
               <div class="field">
                 <label>Location</label><input id="j-loc" placeholder="Remote" />
@@ -1225,8 +1477,8 @@ Response will appear here…</pre
               </select>
             </div>
             <div class="field">
-              <label>Career goal</label>
-              <input
+              <label>Career goal</label
+              ><input
                 id="ai-title"
                 placeholder="e.g. Become a Full Stack Developer"
               />
@@ -1248,7 +1500,6 @@ Response will appear here…</pre
               <i class="ti ti-sparkles"></i> Generate with Gemini
             </button>
 
-            <!-- Steps preview -->
             <div class="steps-preview" id="steps-preview"></div>
 
             <div class="response-box">
@@ -1280,8 +1531,8 @@ Your AI-generated roadmap will appear here…</pre
             </div>
             <div class="two-col">
               <div class="field">
-                <label>Your name</label
-                ><input id="cl-name" placeholder="Kashmir Singh" />
+                <label>Your name</label>
+                <input id="cl-name" placeholder="Kashmir Singh" />
               </div>
               <div class="field">
                 <label>Job title applying for</label
@@ -1333,9 +1584,7 @@ Your AI-generated roadmap will appear here…</pre
                 <i class="ti ti-copy"></i> Copy
               </button>
             </div>
-
             <div class="cover-letter-out" id="cover-letter-out"></div>
-
             <div class="response-box">
               <div class="response-label">
                 <span class="status-dot" id="dot-ai-cover"></span> Raw Response
@@ -1393,9 +1642,7 @@ Your cover letter will appear here…</pre
             >
               <i class="ti ti-message-question"></i> Generate Questions
             </button>
-
             <div class="questions-list" id="questions-list"></div>
-
             <div class="response-box">
               <div class="response-label">
                 <span class="status-dot" id="dot-ai-interview"></span> Raw
@@ -1480,7 +1727,7 @@ Your interview questions will appear here…</pre
         });
       }
 
-      // ── ACTIVE USER ───────────────────────────────────────
+      // ── ACTIVE USER ──────────────────────────────────────
       function setActiveUser(user) {
         store.activeUser = user;
         const name = user.name || user.email || "User";
@@ -1489,12 +1736,10 @@ Your interview questions will appear here…</pre
         el("user-avatar").textContent = name.charAt(0).toUpperCase();
         ["res-uid", "us-uid", "m-uid", "rd-uid", "ai-uid"].forEach((sid) => {
           const sel = el(sid);
-          if (sel) {
-            if (![...sel.options].some((o) => o.value === user.id)) {
-              sel.add(new Option(name, user.id));
-            }
-            sel.value = user.id;
-          }
+          if (!sel) return;
+          if (![...sel.options].some((o) => o.value === user.id))
+            sel.add(new Option(name, user.id));
+          sel.value = user.id;
         });
       }
 
@@ -1610,6 +1855,87 @@ Your interview questions will appear here…</pre
         }
       }
 
+      // ── FILE NAME DISPLAY ─────────────────────────────────
+      function showFileName() {
+        const input = el("res-file");
+        const tag = el("file-name-tag");
+        const text = el("file-name-text");
+        if (input.files[0]) {
+          text.textContent = input.files[0].name;
+          tag.classList.add("visible");
+        } else {
+          tag.classList.remove("visible");
+        }
+      }
+
+      // ── RESUME UPLOAD ─────────────────────────────────────
+      async function uploadResume() {
+        const userId = sv("res-uid");
+        const fileInput = el("res-file");
+
+        if (!userId) return alert("Please select a user first");
+        if (!fileInput.files[0]) return alert("Please select a PDF file");
+
+        const btn = el("btn-upload-resume");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Uploading & Analyzing…';
+        el("dot-resumes").className = "status-dot loading";
+        el("ats-result-card").classList.remove("visible");
+
+        const formData = new FormData();
+        formData.append("resume", fileInput.files[0]);
+        formData.append("userId", userId);
+
+        try {
+          // NOTE: Do NOT set Content-Type header — browser sets multipart boundary
+          const res = await fetch(API + "/resumes/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          el("res-resumes").textContent = JSON.stringify(data, null, 2);
+          el("dot-resumes").className = res.ok
+            ? "status-dot ok"
+            : "status-dot err";
+
+          if (res.ok && data.resume?.analysis) {
+            const a = data.resume.analysis;
+
+            // Scores
+            const atsScore = data.resume.atsScore ?? 0;
+            el("score-ats").textContent = atsScore;
+            el("score-grammar").textContent = a.grammarScore ?? "—";
+            el("score-format").textContent = a.formattingScore ?? "—";
+            el("score-keyword").textContent = a.keywordScore ?? "—";
+
+            // Bars
+            el("bar-ats").style.width = atsScore + "%";
+            el("bar-grammar").style.width = (a.grammarScore ?? 0) + "%";
+            el("bar-format").style.width = (a.formattingScore ?? 0) + "%";
+            el("bar-keyword").style.width = (a.keywordScore ?? 0) + "%";
+
+            // Lists
+            const toItems = (arr) =>
+              (arr || []).map((s) => `<li>${s}</li>`).join("");
+            el("ats-strengths").innerHTML = toItems(a.strengths);
+            el("ats-weaknesses").innerHTML = toItems(a.weaknesses);
+
+            el("ats-result-card").classList.add("visible");
+          }
+        } catch (e) {
+          el("res-resumes").textContent =
+            "Error: " +
+            e.message +
+            "\n\nMake sure your backend is running on " +
+            API;
+          el("dot-resumes").className = "status-dot err";
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-upload"></i> Upload & Analyze';
+      }
+
       // ── AI BUTTON LOADING STATE ───────────────────────────
       function setAiLoading(btnId, loading) {
         const btn = el(btnId);
@@ -1656,20 +1982,18 @@ Your interview questions will appear here…</pre
 
           if (res.ok && data.roadmap) {
             addRoadmapOption(data.roadmap);
-            // Show steps preview
             const steps = data.roadmap.steps || [];
             const preview = el("steps-preview");
             preview.innerHTML = steps
               .map(
                 (s, i) => `
-          <div class="step-card">
-            <div class="step-num">${i + 1}</div>
-            <div class="step-content">
-              <div class="step-title">${s.title}</div>
-              <div class="step-desc">${s.description || ""}</div>
-            </div>
-          </div>
-        `,
+              <div class="step-card">
+                <div class="step-num">${i + 1}</div>
+                <div class="step-content">
+                  <div class="step-title">${s.title}</div>
+                  <div class="step-desc">${s.description || ""}</div>
+                </div>
+              </div>`,
               )
               .join("");
             preview.className = "steps-preview visible";
@@ -1789,15 +2113,14 @@ Your interview questions will appear here…</pre
             list.innerHTML = data.questions
               .map(
                 (q, i) => `
-          <div class="question-card">
-            <div class="q-header">
-              <span class="q-type-badge ${q.type}">${q.type}</span>
-              <span style="font-size:11px;color:#8e8e93">Q${i + 1}</span>
-            </div>
-            <div class="q-text">${q.question}</div>
-            <div class="q-tip"><i class="ti ti-bulb"></i> ${q.tip}</div>
-          </div>
-        `,
+              <div class="question-card">
+                <div class="q-header">
+                  <span class="q-type-badge ${q.type}">${q.type}</span>
+                  <span style="font-size:11px;color:#8e8e93">Q${i + 1}</span>
+                </div>
+                <div class="q-text">${q.question}</div>
+                <div class="q-tip"><i class="ti ti-bulb"></i> ${q.tip}</div>
+              </div>`,
               )
               .join("");
             list.className = "questions-list visible";

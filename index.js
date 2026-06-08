@@ -4,13 +4,49 @@ const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const { execSync } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 const app = express();
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// ─────────────────────────────────────────────
+// CLOUDINARY CONFIG
+// ─────────────────────────────────────────────
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Store file in memory before uploading to Cloudinary
+const upload = multer({ storage: multer.memoryStorage() });
+
 app.use(cors());
 app.use(express.json());
+
+// ─────────────────────────────────────────────
+// HELPER — parse strengths/weaknesses back to arrays
+// ─────────────────────────────────────────────
+function parseAnalysis(analysis) {
+  if (!analysis) return analysis;
+  return {
+    ...analysis,
+    strengths:
+      typeof analysis.strengths === "string"
+        ? JSON.parse(analysis.strengths || "[]")
+        : (analysis.strengths ?? []),
+    weaknesses:
+      typeof analysis.weaknesses === "string"
+        ? JSON.parse(analysis.weaknesses || "[]")
+        : (analysis.weaknesses ?? []),
+  };
+}
 
 // ─────────────────────────────────────────────
 // AUTH / USER
@@ -93,14 +129,23 @@ app.get("/users/:id", async (req, res) => {
         email: true,
         profilePic: true,
         createdAt: true,
-        resumes: true,
+        resumes: { include: { analysis: true } },
         skills: { include: { skill: true } },
         jobMatches: { include: { job: true } },
         roadmaps: true,
       },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
+
+    // Parse analyses inside each resume
+    const parsed = {
+      ...user,
+      resumes: user.resumes.map((r) => ({
+        ...r,
+        analysis: r.analysis ? parseAnalysis(r.analysis) : r.analysis,
+      })),
+    };
+    res.json(parsed);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -145,7 +190,119 @@ app.delete("/users/:id", async (req, res) => {
 // RESUMES
 // ─────────────────────────────────────────────
 
-// POST /resumes
+// POST /resumes/upload  — multipart/form-data (file upload + AI analysis)
+app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    // 1. Upload to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "resumes", resource_type: "raw" },
+        (err, result) => (err ? reject(err) : resolve(result)),
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // 2. Extract text from PDF using pdfplumber (Python) — reliable for all PDF types
+    let extractedText = "";
+    try {
+      // Write buffer to a temp file
+      const tmpPath = path.join(os.tmpdir(), `resume_${Date.now()}.pdf`);
+      fs.writeFileSync(tmpPath, req.file.buffer);
+
+      // Run pdfplumber via Python to extract text
+      // Use array join to avoid any newline escaping issues in the script string
+      const pyLines = [
+        "import pdfplumber, sys",
+        "text = []",
+        "with pdfplumber.open(sys.argv[1]) as pdf:",
+        "    for page in pdf.pages:",
+        "        t = page.extract_text()",
+        "        if t:",
+        "            text.append(t)",
+        "print('\\n'.join(text))",
+      ];
+      const tmpPy = path.join(os.tmpdir(), `extract_${Date.now()}.py`);
+      fs.writeFileSync(tmpPy, pyLines.join("\n"));
+
+      extractedText = execSync(`python3 ${tmpPy} "${tmpPath}"`, {
+        timeout: 15000,
+      })
+        .toString()
+        .trim();
+
+      // Cleanup temp files
+      try {
+        fs.unlinkSync(tmpPath);
+        fs.unlinkSync(tmpPy);
+      } catch {}
+    } catch (e) {
+      extractedText = "Could not extract text from PDF";
+    }
+
+    // 3. Ask Gemini to analyze resume and give ATS score
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const prompt = `
+You are an ATS (Applicant Tracking System) expert. Analyze this resume text and respond ONLY with valid JSON, no markdown, no backticks.
+
+Resume text:
+"""
+${extractedText.slice(0, 4000)}
+"""
+
+Format:
+{
+  "atsScore": <0-100 number>,
+  "grammarScore": <0-100>,
+  "formattingScore": <0-100>,
+  "keywordScore": <0-100>,
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."]
+}
+    `.trim();
+
+    const result = await model.generateContent(prompt);
+    const rawText = result.response
+      .text()
+      .replace(/```json|```/g, "")
+      .trim();
+    const analysis = JSON.parse(rawText);
+
+    // 4. Save resume to DB
+    const resume = await prisma.resume.create({
+      data: {
+        fileName: req.file.originalname,
+        fileUrl: uploadResult.secure_url,
+        atsScore: analysis.atsScore,
+        userId,
+      },
+    });
+
+    // 5. Save analysis to DB — stringify arrays so Prisma (String field) accepts them
+    const savedAnalysis = await prisma.resumeAnalysis.create({
+      data: {
+        grammarScore: analysis.grammarScore,
+        formattingScore: analysis.formattingScore,
+        keywordScore: analysis.keywordScore,
+        strengths: JSON.stringify(analysis.strengths ?? []),
+        weaknesses: JSON.stringify(analysis.weaknesses ?? []),
+        resumeId: resume.id,
+      },
+    });
+
+    res.status(201).json({
+      message: "Resume uploaded and analyzed",
+      resume: { ...resume, analysis: parseAnalysis(savedAnalysis) },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /resumes  (manual entry without file)
 app.post("/resumes", async (req, res) => {
   try {
     const { fileName, fileUrl, atsScore, userId } = req.body;
@@ -163,15 +320,19 @@ app.post("/resumes", async (req, res) => {
   }
 });
 
-// GET /resumes/user/:userId
+// GET /resumes/user/:userId  ← must be BEFORE /resumes/:id to avoid route conflict
 app.get("/resumes/user/:userId", async (req, res) => {
   try {
     const resumes = await prisma.resume.findMany({
       where: { userId: req.params.userId },
-      include: { analyses: true },
+      include: { analysis: true }, // one-to-one → singular
       orderBy: { createdAt: "desc" },
     });
-    res.json(resumes);
+    const parsed = resumes.map((r) => ({
+      ...r,
+      analysis: r.analysis ? parseAnalysis(r.analysis) : r.analysis,
+    }));
+    res.json(parsed);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -182,10 +343,15 @@ app.get("/resumes/:id", async (req, res) => {
   try {
     const resume = await prisma.resume.findUnique({
       where: { id: req.params.id },
-      include: { analyses: true },
+      include: { analysis: true }, // one-to-one → singular
     });
     if (!resume) return res.status(404).json({ error: "Resume not found" });
-    res.json(resume);
+    res.json({
+      ...resume,
+      analysis: resume.analysis
+        ? parseAnalysis(resume.analysis)
+        : resume.analysis,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -242,12 +408,12 @@ app.post("/resume-analysis", async (req, res) => {
         grammarScore,
         formattingScore,
         keywordScore,
-        strengths,
-        weaknesses,
+        strengths: JSON.stringify(Array.isArray(strengths) ? strengths : []),
+        weaknesses: JSON.stringify(Array.isArray(weaknesses) ? weaknesses : []),
         resumeId,
       },
     });
-    res.status(201).json(analysis);
+    res.status(201).json(parseAnalysis(analysis));
   } catch (err) {
     if (err.code === "P2002")
       return res
@@ -264,7 +430,7 @@ app.get("/resume-analysis/:resumeId", async (req, res) => {
       where: { resumeId: req.params.resumeId },
     });
     if (!analysis) return res.status(404).json({ error: "Analysis not found" });
-    res.json(analysis);
+    res.json(parseAnalysis(analysis));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -286,11 +452,11 @@ app.put("/resume-analysis/:resumeId", async (req, res) => {
         grammarScore,
         formattingScore,
         keywordScore,
-        strengths,
-        weaknesses,
+        strengths: JSON.stringify(Array.isArray(strengths) ? strengths : []),
+        weaknesses: JSON.stringify(Array.isArray(weaknesses) ? weaknesses : []),
       },
     });
-    res.json(analysis);
+    res.json(parseAnalysis(analysis));
   } catch (err) {
     if (err.code === "P2025")
       return res.status(404).json({ error: "Analysis not found" });
@@ -718,7 +884,6 @@ app.post("/ai/generate-roadmap", async (req, res) => {
     if (!userId || !title)
       return res.status(400).json({ error: "userId and title are required" });
 
-    // 1. Build prompt
     const skillsText =
       currentSkills && currentSkills.length > 0
         ? `The user already knows: ${currentSkills.join(", ")}.`
@@ -737,23 +902,16 @@ Format:
 ]
     `.trim();
 
-    // 2. Call Gemini
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
-    // 3. Parse JSON steps
     const clean = text.replace(/```json|```/g, "").trim();
     const steps = JSON.parse(clean);
 
-    // 4. Create roadmap in DB
     const roadmap = await prisma.roadmap.create({
       data: { title, userId },
     });
 
-    // 5. Save each step to DB
     const savedSteps = await Promise.all(
       steps.map((step) =>
         prisma.roadmapStep.create({
@@ -804,9 +962,7 @@ Keep it concise (3 paragraphs), professional, and enthusiastic.
 Respond ONLY with the cover letter text, no subject line, no extra commentary.
     `.trim();
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const coverLetter = result.response.text().trim();
 
@@ -848,9 +1004,7 @@ Format:
 ]
     `.trim();
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const clean = text.replace(/```json|```/g, "").trim();
