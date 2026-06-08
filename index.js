@@ -6,10 +6,7 @@ const cors = require("cors");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
-const { execSync } = require("child_process");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const PDFParser = require("pdf2json");
 
 const app = express();
 const prisma = new PrismaClient();
@@ -206,42 +203,30 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    // 2. Extract text from PDF using pdfplumber (Python) — reliable for all PDF types
+    // 2. Extract text from PDF using pdf2json (pure Node, no Python needed)
     let extractedText = "";
-    try {
-      // Write buffer to a temp file
-      const tmpPath = path.join(os.tmpdir(), `resume_${Date.now()}.pdf`);
-      fs.writeFileSync(tmpPath, req.file.buffer);
-
-      // Run pdfplumber via Python to extract text
-      // Use array join to avoid any newline escaping issues in the script string
-      const pyLines = [
-        "import pdfplumber, sys",
-        "text = []",
-        "with pdfplumber.open(sys.argv[1]) as pdf:",
-        "    for page in pdf.pages:",
-        "        t = page.extract_text()",
-        "        if t:",
-        "            text.append(t)",
-        "print('\\n'.join(text))",
-      ];
-      const tmpPy = path.join(os.tmpdir(), `extract_${Date.now()}.py`);
-      fs.writeFileSync(tmpPy, pyLines.join("\n"));
-
-      extractedText = execSync(`python3 ${tmpPy} "${tmpPath}"`, {
-        timeout: 15000,
-      })
-        .toString()
-        .trim();
-
-      // Cleanup temp files
-      try {
-        fs.unlinkSync(tmpPath);
-        fs.unlinkSync(tmpPy);
-      } catch {}
-    } catch (e) {
-      extractedText = "Could not extract text from PDF";
-    }
+    await new Promise((resolve) => {
+      const pdfParser = new PDFParser();
+      pdfParser.on("pdfParser_dataError", () => {
+        extractedText = "Could not extract text from PDF";
+        resolve();
+      });
+      pdfParser.on("pdfParser_dataReady", (pdfData) => {
+        try {
+          extractedText = pdfData.Pages.map((page) =>
+            page.Texts.map((t) =>
+              decodeURIComponent(t.R.map((r) => r.T).join("")),
+            ).join(" "),
+          )
+            .join("\n")
+            .trim();
+        } catch {
+          extractedText = "Could not extract text from PDF";
+        }
+        resolve();
+      });
+      pdfParser.parseBuffer(req.file.buffer);
+    });
 
     // 3. Ask Gemini to analyze resume and give ATS score
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
