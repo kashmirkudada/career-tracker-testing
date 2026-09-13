@@ -76,19 +76,29 @@ function cleanJsonString(rawText) {
  */
 async function generateWithFallback(
   prompt,
-  primaryModel = "gemini-2.5-flash",
-  fallbackModel = "gemini-2.0-flash",
+  models = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+  ],
 ) {
-  try {
-    const model = genAI.getGenerativeModel({ model: primaryModel });
-    return await model.generateContent(prompt);
-  } catch (err) {
-    console.warn(
-      `Primary model (${primaryModel}) unavailable/failed. Trying fallback (${fallbackModel})... Error: ${err.message}`,
-    );
-    const model = genAI.getGenerativeModel({ model: fallbackModel });
-    return await model.generateContent(prompt);
+  const generationConfig = { temperature: 0, topP: 1, topK: 1 };
+  let lastErr;
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig,
+      });
+      return await model.generateContent(prompt);
+    } catch (err) {
+      console.warn(`Model (${modelName}) failed: ${err.message}`);
+      lastErr = err;
+    }
   }
+  throw lastErr;
 }
 
 // ─────────────────────────────────────────────
@@ -279,14 +289,16 @@ Resume text:
 ${extractedText.slice(0, 4000)}
 """
 
+Provide exactly 8 strengths and exactly 8 weaknesses, each as a specific, actionable one-sentence observation grounded in the actual resume content (not generic statements).
+
 Format:
 {
-  "atsScore": 85,
-  "grammarScore": 90,
-  "formattingScore": 80,
-  "keywordScore": 85,
-  "strengths": ["Clear structure", "Relevant technical skill set"],
-  "weaknesses": ["Consider adding measurable impact results"]
+  "atsScore": <0-100 number>,
+  "grammarScore": <0-100>,
+  "formattingScore": <0-100>,
+  "keywordScore": <0-100>,
+  "strengths": ["...", "...", "...", "...", "...", "...", "...", "..."],
+  "weaknesses": ["...", "...", "...", "...", "...", "...", "...", "..."]
 }
     `.trim();
 
