@@ -3,12 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Career Tracker — AI-Powered Career Platform</title>
+    <title>Career Tracker — AI-Powered Career Platform</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css"
     />
     <style>
+      :root {
+        --font-sans:
+          "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, monospace;
+
+        /* Neutral Palette */
+        --bg-app: #f8fafc;
+        --bg-surface: #ffffff;
+        --bg-sidebar: #0f172a;
+        --bg-sidebar-hover: #1e293b;
+        --bg-sidebar-active: #334155;
+
+        --border-light: #e2e8f0;
+        --border-subtle: #f1f5f9;
+        --border-dark: #334155;
+
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --text-light: #f8fafc;
+
+        /* Accent Colors */
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --primary-light: #eff6ff;
+
+        --ai-accent: #7c3aed;
+        --ai-accent-hover: #6d28d9;
+        --ai-light: #f5f3ff;
+        --ai-border: #ddd6fe;
+
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+
+        /* Radius & Shadow */
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md:
+          0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        --shadow-lg:
+          0 10px 15px -3px rgba(0, 0, 0, 0.06),
+          0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      }
+
       *,
       *::before,
       *::after {
@@ -16,36 +71,28 @@
         margin: 0;
         padding: 0;
       }
-      .response-box {
-        display: none;
-      }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f0f0f0;
+        font-family: var(--font-sans);
+        background: var(--bg-app);
+        color: var(--text-primary);
         min-height: 100vh;
         display: flex;
         align-items: stretch;
-        justify-content: center;
-        padding: 0;
+        -webkit-font-smoothing: antialiased;
       }
 
       .app {
         display: flex;
         width: 100%;
-        max-width: 100%;
         min-height: 100vh;
-        border-radius: 0;
-        overflow: hidden;
-        border: none;
-        box-shadow: none;
       }
 
       /* SIDEBAR */
-            .sidebar {
-        width: 210px;
-        background: #1c1c1e;
-        padding: 20px 0 16px;
+      .sidebar {
+        width: 250px;
+        background: var(--bg-sidebar);
+        padding: 24px 0;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
@@ -53,147 +100,194 @@
         position: sticky;
         top: 0;
         overflow-y: auto;
-      }
-      .sidebar-brand {
-        padding: 0 16px 20px;
-        border-bottom: 0.5px solid #3a3a3c;
-      }
-      .sidebar-brand .brand-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: #ffffff;
-        letter-spacing: -0.01em;
-      }
-      .sidebar-brand .brand-sub {
-        font-size: 11px;
-        color: #636366;
-        margin-top: 2px;
+        border-right: 1px solid var(--border-dark);
       }
 
-      .user-chip {
-        margin: 12px 12px 4px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: #2c2c2e;
-        border: 0.5px solid #3a3a3c;
-        display: none;
+      .sidebar-brand {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .sidebar-brand .brand-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        display: flex;
         align-items: center;
         gap: 8px;
       }
+
+      .sidebar-brand .brand-name::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 10px var(--primary);
+      }
+
+      .sidebar-brand .brand-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      .user-chip {
+        margin: 16px 16px 8px;
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: none;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s ease;
+      }
+
       .user-chip.visible {
         display: flex;
       }
+
       .user-avatar {
-        width: 26px;
-        height: 26px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        background: #0a84ff;
+        background: linear-gradient(135deg, var(--primary), var(--ai-accent));
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 700;
         color: #fff;
         flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
       }
+
       .user-chip-info {
         min-width: 0;
+        flex: 1;
       }
+
       .user-chip-name {
-        font-size: 11px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 600;
         color: #fff;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
       .user-chip-label {
         font-size: 10px;
-        color: #636366;
+        color: var(--text-muted);
       }
 
       .nav-section-label {
         font-size: 10px;
-        font-weight: 600;
-        color: #48484a;
-        letter-spacing: 0.08em;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        padding: 16px 16px 6px;
+        padding: 20px 20px 8px;
       }
+
       .nav-item {
         display: flex;
         align-items: center;
-        gap: 9px;
-        padding: 8px 16px;
+        gap: 12px;
+        padding: 10px 20px;
         cursor: pointer;
         font-size: 13px;
-        color: #8e8e93;
+        font-weight: 500;
+        color: #94a3b8;
         border: none;
         background: none;
         width: 100%;
         text-align: left;
-        border-left: 2px solid transparent;
-        transition:
-          background 0.1s,
-          color 0.1s;
-        border-radius: 0;
-      }
-      .nav-item i {
-        font-size: 15px;
-        flex-shrink: 0;
-      }
-      .nav-item:hover {
-        background: #2c2c2e;
-        color: #ebebf0;
-      }
-      .nav-item.active {
-        background: #2c2c2e;
-        color: #ffffff;
-        font-weight: 500;
-        border-left-color: #0a84ff;
-      }
-      .nav-item.active i {
-        color: #0a84ff;
+        position: relative;
+        transition: all 0.2s ease;
       }
 
-      .nav-item.ai-item.active {
-        border-left-color: #7c3aed;
+      .nav-item i {
+        font-size: 18px;
+        flex-shrink: 0;
+        transition: color 0.2s;
       }
+
+      .nav-item:hover {
+        background: var(--bg-sidebar-hover);
+        color: #f1f5f9;
+      }
+
+      .nav-item.active {
+        background: var(--bg-sidebar-active);
+        color: #ffffff;
+        font-weight: 600;
+      }
+
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--primary);
+        border-radius: 0 2px 2px 0;
+      }
+
+      .nav-item.active i {
+        color: var(--primary);
+      }
+
+      .nav-item.ai-item.active::before {
+        background: var(--ai-accent);
+      }
+
       .nav-item.ai-item.active i {
         color: #a78bfa;
       }
+
       .nav-item.ai-item:hover i {
         color: #a78bfa;
       }
 
       .nav-ai-label {
         font-size: 10px;
-        font-weight: 600;
-        color: #48484a;
-        letter-spacing: 0.08em;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        padding: 16px 16px 6px;
-        border-top: 0.5px solid #3a3a3c;
-        margin-top: 8px;
+        padding: 20px 20px 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 12px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
       }
+
       .nav-ai-label .ai-dot {
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        background: #7c3aed;
+        background: #a78bfa;
         flex-shrink: 0;
+        box-shadow: 0 0 8px #a78bfa;
         animation: pulse 2s infinite;
       }
+
       @keyframes pulse {
         0%,
         100% {
           opacity: 1;
+          transform: scale(1);
         }
         50% {
           opacity: 0.4;
+          transform: scale(0.85);
         }
       }
 
@@ -203,44 +297,52 @@
         display: flex;
         flex-direction: column;
         min-width: 0;
-        background: #f5f5f7;
+        background: var(--bg-app);
       }
+
       .page {
         display: none;
         flex-direction: column;
         height: 100%;
       }
+
       .page.active {
         display: flex;
       }
 
       .page-header {
-        padding: 18px 24px 14px;
-        border-bottom: 0.5px solid #d1d1d6;
-        background: #ffffff;
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--border-light);
+        background: var(--bg-surface);
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 16px;
+        box-shadow: var(--shadow-sm);
       }
+
       .page-header-text h2 {
-        font-size: 15px;
-        font-weight: 600;
-        color: #000;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
       }
+
       .page-header-text p {
-        font-size: 12px;
-        color: #8e8e93;
-        margin-top: 2px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 4px;
       }
 
       .page-header.ai-header {
-        background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+        background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
         border-bottom-color: #4c1d95;
       }
+
       .page-header.ai-header .page-header-text h2 {
-        color: #fff;
+        color: #ffffff;
       }
+
       .page-header.ai-header .page-header-text p {
         color: #c4b5fd;
       }
@@ -248,348 +350,385 @@
       .ai-badge {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
+        gap: 6px;
+        padding: 4px 10px;
         border-radius: 20px;
-        background: rgba(124, 58, 237, 0.3);
-        border: 0.5px solid rgba(167, 139, 250, 0.4);
-        font-size: 10px;
+        background: rgba(124, 58, 237, 0.25);
+        border: 1px solid rgba(167, 139, 250, 0.4);
+        font-size: 11px;
         font-weight: 600;
-        color: #c4b5fd;
-        letter-spacing: 0.05em;
+        color: #ddd6fe;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         flex-shrink: 0;
       }
 
       .page-body {
-        padding: 20px 24px;
+        padding: 32px;
         flex: 1;
         overflow-y: auto;
+        max-width: 1100px;
+        width: 100%;
+        margin: 0 auto;
       }
 
       /* FORM ELEMENTS */
       .field {
-        margin-bottom: 13px;
+        margin-bottom: 18px;
       }
+
       .field label {
         display: flex;
         align-items: center;
-        gap: 5px;
-        font-size: 12px;
-        color: #3c3c43;
-        margin-bottom: 5px;
-        font-weight: 500;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        font-weight: 600;
       }
+
       .field label .auto-badge {
         font-size: 10px;
-        font-weight: 500;
-        background: #e8f4ff;
-        color: #0a84ff;
-        padding: 1px 6px;
+        font-weight: 600;
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: 2px 6px;
         border-radius: 4px;
       }
+
       .field input,
       .field select,
       .field textarea {
         width: 100%;
-        font-size: 13px;
-        padding: 8px 11px;
-        border: 0.5px solid #c7c7cc;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #000000;
+        font-size: 14px;
+        padding: 10px 14px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: var(--bg-surface);
+        color: var(--text-primary);
         outline: none;
         font-family: inherit;
-        transition:
-          border-color 0.15s,
-          box-shadow 0.15s;
-        appearance: none;
-        -webkit-appearance: none;
+        transition: all 0.15s ease;
+        box-shadow: var(--shadow-sm);
       }
+
       .field textarea {
         resize: vertical;
-        min-height: 70px;
+        min-height: 90px;
+        line-height: 1.5;
       }
+
       .field select {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
-        background-position: right 10px center;
-        padding-right: 28px;
+        background-position: right 12px center;
+        padding-right: 36px;
       }
+
       .field input:focus,
       .field select:focus,
       .field textarea:focus {
-        border-color: #0a84ff;
-        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
       }
+
       .field input::placeholder,
       .field textarea::placeholder {
-        color: #aeaeb2;
+        color: var(--text-muted);
       }
 
       /* File input styling */
       .field input[type="file"] {
-        padding: 7px 11px;
+        padding: 8px 12px;
         cursor: pointer;
-        color: #3c3c43;
+        color: var(--text-secondary);
       }
+
       .field input[type="file"]::-webkit-file-upload-button {
-        background: #f0f0f0;
-        border: 0.5px solid #c7c7cc;
+        background: var(--bg-app);
+        border: 1px solid var(--border-light);
         border-radius: 6px;
-        padding: 4px 10px;
+        padding: 6px 12px;
         font-size: 12px;
+        font-weight: 600;
         font-family: inherit;
         cursor: pointer;
-        color: #3c3c43;
-        margin-right: 10px;
+        color: var(--text-primary);
+        margin-right: 12px;
+        transition: background 0.15s;
       }
+
       .field input[type="file"]::-webkit-file-upload-button:hover {
-        background: #e0e0e0;
+        background: #e2e8f0;
       }
 
       .two-col {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 16px;
       }
+
       .three-col {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
-      }
-      .btn-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 4px;
+        gap: 16px;
       }
 
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      /* BUTTONS */
       .submit-btn {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        background: #0a84ff;
+        gap: 8px;
+        padding: 10px 18px;
+        background: var(--primary);
         color: #ffffff;
         border: none;
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 600;
         cursor: pointer;
         font-family: inherit;
-        transition:
-          opacity 0.15s,
-          transform 0.1s;
+        transition: all 0.15s ease;
+        box-shadow: var(--shadow-sm);
       }
+
       .submit-btn:hover {
-        opacity: 0.86;
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
       }
+
       .submit-btn:active {
-        transform: scale(0.97);
+        transform: translateY(0);
       }
+
       .submit-btn i {
-        font-size: 14px;
+        font-size: 16px;
       }
+
       .submit-btn.dark {
-        background: #1c1c1e;
+        background: var(--bg-sidebar);
       }
+
+      .submit-btn.dark:hover {
+        background: #1e293b;
+      }
+
       .submit-btn.ai-btn {
-        background: linear-gradient(135deg, #7c3aed, #6d28d9);
-        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+        background: linear-gradient(135deg, var(--ai-accent), #6d28d9);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
       }
+
       .submit-btn.ai-btn:hover {
-        opacity: 0.9;
+        opacity: 0.95;
+        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
       }
+
       .submit-btn.ai-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         transform: none;
+        box-shadow: none;
       }
 
       .get-btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 14px;
-        background: #ffffff;
-        color: #000;
-        border: 0.5px solid #c7c7cc;
-        border-radius: 8px;
+        padding: 10px 16px;
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
         font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
         font-family: inherit;
-        transition: background 0.1s;
-      }
-      .get-btn:hover {
-        background: #f0f0f0;
-      }
-      .get-btn i {
-        font-size: 14px;
-        color: #636366;
+        transition: background 0.15s;
+        box-shadow: var(--shadow-sm);
       }
 
-      /* RESPONSE */
-      .response-box {
-        margin-top: 20px;
-        border-top: 0.5px solid #d1d1d6;
-        padding-top: 16px;
+      .get-btn:hover {
+        background: var(--bg-app);
       }
+
+      /* RESPONSE BOX */
+      .response-box {
+        margin-top: 28px;
+        border-top: 1px solid var(--border-light);
+        padding-top: 20px;
+      }
+
       .response-label {
         font-size: 11px;
-        font-weight: 600;
-        color: #8e8e93;
+        font-weight: 700;
+        color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.07em;
-        margin-bottom: 8px;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
       }
+
       .status-dot {
-        width: 6px;
-        height: 6px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
-        background: #c7c7cc;
+        background: var(--border-light);
         flex-shrink: 0;
         transition: background 0.2s;
       }
+
       .status-dot.ok {
-        background: #34c759;
+        background: var(--success);
       }
+
       .status-dot.err {
-        background: #ff3b30;
+        background: var(--danger);
       }
+
       .status-dot.loading {
-        background: #ff9f0a;
+        background: var(--warning);
         animation: blink 0.8s infinite;
-      }
-      @keyframes blink {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
       }
 
       pre.response {
-        background: #ffffff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 10px;
-        padding: 12px 14px;
-        font-size: 12px;
-        font-family: "SF Mono", "Fira Mono", monospace;
-        color: #3c3c43;
+        background: #0f172a;
+        border: 1px solid var(--border-dark);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        font-size: 13px;
+        font-family: var(--font-mono);
+        color: #e2e8f0;
         white-space: pre-wrap;
         word-break: break-all;
-        min-height: 52px;
-        max-height: 260px;
+        min-height: 60px;
+        max-height: 300px;
         overflow-y: auto;
-      }
-      pre.response.ai-response {
-        background: #faf5ff;
-        border-color: #e9d5ff;
-        color: #2e1065;
-        max-height: 320px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
-      /* ── ATS RESULT CARD ── */
+      pre.response.ai-response {
+        background: #1e1b4b;
+        border-color: #4c1d95;
+        color: #e0e7ff;
+      }
+
+      /* ATS RESULT CARD */
       .ats-result-card {
         display: none;
-        margin-top: 16px;
-        background: #fff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 12px;
+        margin-top: 24px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
         overflow: hidden;
+        box-shadow: var(--shadow-md);
       }
+
       .ats-result-card.visible {
         display: block;
       }
 
       .ats-card-header {
-        padding: 12px 16px;
-        background: linear-gradient(135deg, #f0f9ff, #e8f4ff);
-        border-bottom: 0.5px solid #d1d1d6;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, var(--primary-light), #ffffff);
+        border-bottom: 1px solid var(--border-light);
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
+
       .ats-card-header i {
-        font-size: 16px;
-        color: #0a84ff;
+        font-size: 20px;
+        color: var(--primary);
       }
+
       .ats-card-header span {
-        font-size: 13px;
-        font-weight: 600;
-        color: #000;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
       }
 
       .ats-scores-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 0;
-        border-bottom: 0.5px solid #d1d1d6;
+        border-bottom: 1px solid var(--border-light);
       }
+
       .ats-score-cell {
-        padding: 14px 10px;
+        padding: 20px 12px;
         text-align: center;
-        border-right: 0.5px solid #d1d1d6;
+        border-right: 1px solid var(--border-light);
       }
+
       .ats-score-cell:last-child {
         border-right: none;
       }
 
       .ats-score-value {
-        font-size: 26px;
-        font-weight: 700;
+        font-size: 32px;
+        font-weight: 800;
         line-height: 1;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
+        letter-spacing: -0.03em;
       }
+
       .ats-score-value.blue {
-        color: #0a84ff;
+        color: var(--primary);
       }
       .ats-score-value.green {
-        color: #34c759;
+        color: var(--success);
       }
       .ats-score-value.orange {
-        color: #ff9f0a;
+        color: var(--warning);
       }
       .ats-score-value.purple {
-        color: #bf5af2;
+        color: var(--ai-accent);
       }
 
       .ats-score-bar {
-        height: 4px;
-        background: #f0f0f0;
-        border-radius: 2px;
-        margin: 6px auto 5px;
-        width: 60%;
+        height: 6px;
+        background: var(--bg-app);
+        border-radius: 3px;
+        margin: 8px auto 6px;
+        width: 70%;
         overflow: hidden;
       }
+
       .ats-score-bar-fill {
         height: 100%;
-        border-radius: 2px;
+        border-radius: 3px;
         transition: width 0.6s ease;
       }
+
       .ats-score-bar-fill.blue {
-        background: #0a84ff;
+        background: var(--primary);
       }
       .ats-score-bar-fill.green {
-        background: #34c759;
+        background: var(--success);
       }
       .ats-score-bar-fill.orange {
-        background: #ff9f0a;
+        background: var(--warning);
       }
       .ats-score-bar-fill.purple {
-        background: #bf5af2;
+        background: var(--ai-accent);
       }
 
       .ats-score-label {
-        font-size: 10px;
-        color: #8e8e93;
-        font-weight: 500;
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
       .ats-feedback-grid {
@@ -597,394 +736,414 @@
         grid-template-columns: 1fr 1fr;
         gap: 0;
       }
+
       .ats-feedback-col {
-        padding: 14px 16px;
+        padding: 20px;
       }
+
       .ats-feedback-col:first-child {
-        border-right: 0.5px solid #d1d1d6;
+        border-right: 1px solid var(--border-light);
       }
+
       .ats-feedback-heading {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
       }
+
       .ats-feedback-heading.strengths {
-        color: #34c759;
+        color: var(--success);
       }
       .ats-feedback-heading.weaknesses {
-        color: #ff3b30;
+        color: var(--danger);
       }
 
       .ats-feedback-list {
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
       }
+
       .ats-feedback-list li {
-        font-size: 12px;
-        color: #3c3c43;
+        font-size: 13px;
+        color: var(--text-secondary);
         display: flex;
         align-items: flex-start;
-        gap: 6px;
-        line-height: 1.45;
+        gap: 8px;
+        line-height: 1.5;
       }
+
       .ats-feedback-list li::before {
         content: "";
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         flex-shrink: 0;
-        margin-top: 5px;
+        margin-top: 6px;
       }
+
       .ats-feedback-col.str li::before {
-        background: #34c759;
+        background: var(--success);
       }
       .ats-feedback-col.wk li::before {
-        background: #ff3b30;
+        background: var(--danger);
       }
-      /* Skills chip list */
-            .skills-chip-list {
+
+      /* SKILLS CHIP LIST */
+      .skills-chip-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
-        padding: 16px;
-        background: #ffffff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 10px;
-        min-height: 48px;
+        gap: 10px;
+        margin-top: 14px;
+        padding: 20px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        min-height: 60px;
+        box-shadow: var(--shadow-sm);
       }
+
       .skill-chip {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        background: #e8f4ff;
-        color: #0055b3;
+        gap: 8px;
+        padding: 6px 14px;
+        background: var(--primary-light);
+        color: var(--primary);
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
+        border: 1px solid rgba(37, 99, 235, 0.15);
       }
 
-      /* File name display */
+      /* FILE DISPLAY TAG */
       .file-name-tag {
         display: none;
         align-items: center;
-        gap: 6px;
-        margin-top: 6px;
-        padding: 5px 10px;
-        background: #f5f5f7;
-        border: 0.5px solid #d1d1d6;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 6px 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
         border-radius: 6px;
-        font-size: 11px;
-        color: #3c3c43;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
       }
+
       .file-name-tag.visible {
         display: inline-flex;
       }
+
       .file-name-tag i {
-        font-size: 13px;
-        color: #636366;
+        font-size: 16px;
+        color: var(--danger);
       }
 
-      /* Cover letter output */
+      /* COVER LETTER OUTPUT */
       .cover-letter-out {
         display: none;
-        background: #fff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 10px;
-        padding: 16px 18px;
-        font-size: 13px;
-        line-height: 1.7;
-        color: #1c1c1e;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 24px;
+        font-size: 14px;
+        line-height: 1.8;
+        color: var(--text-primary);
         white-space: pre-wrap;
-        max-height: 360px;
+        max-height: 420px;
         overflow-y: auto;
-        margin-top: 12px;
+        margin-top: 16px;
+        box-shadow: var(--shadow-md);
       }
+
       .cover-letter-out.visible {
         display: block;
       }
 
-      /* Interview questions output */
+      /* INTERVIEW QUESTIONS */
       .questions-list {
         display: none;
-        margin-top: 12px;
+        margin-top: 16px;
       }
+
       .questions-list.visible {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
       }
+
       .question-card {
-        background: #fff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 10px;
-        padding: 12px 14px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        box-shadow: var(--shadow-sm);
       }
+
       .question-card .q-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 6px;
+        gap: 10px;
+        margin-bottom: 8px;
       }
+
       .q-type-badge {
         font-size: 10px;
-        font-weight: 600;
-        padding: 2px 7px;
+        font-weight: 700;
+        padding: 3px 8px;
         border-radius: 20px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
+
       .q-type-badge.technical {
-        background: #e8f4ff;
-        color: #0055b3;
+        background: var(--primary-light);
+        color: var(--primary);
       }
+
       .q-type-badge.behavioral {
         background: #fef3c7;
-        color: #92400e;
+        color: #b45309;
       }
+
       .question-card .q-text {
-        font-size: 13px;
-        font-weight: 500;
-        color: #1c1c1e;
-        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        line-height: 1.4;
       }
+
       .question-card .q-tip {
-        font-size: 11px;
-        color: #636366;
+        font-size: 12px;
+        color: var(--text-secondary);
         display: flex;
         align-items: flex-start;
-        gap: 5px;
+        gap: 6px;
+        line-height: 1.5;
       }
+
       .question-card .q-tip i {
-        font-size: 12px;
-        color: #34c759;
+        font-size: 15px;
+        color: var(--success);
         flex-shrink: 0;
         margin-top: 1px;
       }
 
-      /* Roadmap steps preview */
+      /* ROADMAP STEPS PREVIEW */
       .steps-preview {
         display: none;
-        margin-top: 12px;
+        margin-top: 16px;
       }
+
       .steps-preview.visible {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-      }
-      .step-card {
-        background: #fff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 8px;
-        padding: 10px 12px;
-        display: flex;
         gap: 10px;
-        align-items: flex-start;
       }
+
+      .step-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        box-shadow: var(--shadow-sm);
+      }
+
       .step-num {
-        width: 22px;
-        height: 22px;
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        background: linear-gradient(135deg, var(--ai-accent), #6d28d9);
         color: #fff;
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        margin-top: 1px;
+        box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
       }
+
       .step-content .step-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: #1c1c1e;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-primary);
       }
+
       .step-content .step-desc {
-        font-size: 11px;
-        color: #636366;
-        margin-top: 2px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
         line-height: 1.5;
       }
 
       .section-divider {
         font-size: 11px;
-        font-weight: 600;
-        color: #8e8e93;
+        font-weight: 700;
+        color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.07em;
-        margin: 20px 0 14px;
-        padding-top: 16px;
-        border-top: 0.5px solid #d1d1d6;
+        letter-spacing: 0.08em;
+        margin: 28px 0 16px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-light);
       }
 
       /* AUTH PANELS */
       .auth-split {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px;
+        gap: 24px;
       }
+
       .auth-panel {
-        background: #ffffff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 12px;
-        padding: 16px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
       }
+
       .auth-panel h3 {
-        font-size: 13px;
-        font-weight: 600;
-        color: #000;
-        margin-bottom: 14px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       /* INFO BANNER */
       .info-banner {
         display: flex;
         align-items: center;
-        gap: 8px;
-        background: #e8f4ff;
-        border: 0.5px solid #b3d8ff;
-        border-radius: 8px;
-        padding: 9px 12px;
-        font-size: 12px;
-        color: #0055b3;
-        margin-bottom: 16px;
+        gap: 10px;
+        background: var(--primary-light);
+        border: 1px solid #bfdbfe;
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #1e40af;
+        margin-bottom: 20px;
       }
+
       .info-banner.ai {
-        background: #f5f3ff;
-        border-color: #ddd6fe;
+        background: var(--ai-light);
+        border-color: var(--ai-border);
         color: #5b21b6;
       }
+
       .info-banner i {
-        font-size: 14px;
+        font-size: 18px;
         flex-shrink: 0;
-      }
-
-      .select-hint {
-        font-size: 11px;
-        color: #aeaeb2;
-        margin-top: 4px;
-      }
-
-      .spinner {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 0.6s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .copy-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        background: #f0f0f0;
-        color: #3c3c43;
-        border: 0.5px solid #c7c7cc;
-        border-radius: 6px;
-        font-size: 11px;
-        cursor: pointer;
-        font-family: inherit;
-        transition: background 0.1s;
-      }
-      .copy-btn:hover {
-        background: #e0e0e0;
-      }
-      .copy-btn i {
-        font-size: 12px;
       }
 
       /* JOB MATCH CARDS */
       .jobs-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 12px;
-        margin-top: 12px;
+        gap: 14px;
+        margin-top: 16px;
       }
+
       .job-card {
-        background: #fff;
-        border: 0.5px solid #d1d1d6;
-        border-radius: 12px;
-        padding: 16px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 20px;
         position: relative;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.15s ease;
       }
+
+      .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 10px;
-        margin-bottom: 4px;
+        gap: 12px;
+        margin-bottom: 6px;
       }
+
       .card-header h3 {
-        font-size: 14px;
-        font-weight: 600;
-        color: #000;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
       }
+
       .score-badge {
         font-size: 11px;
         font-weight: 700;
-        background: #e1fbf2;
-        color: #107c41;
-        padding: 3px 8px;
+        background: #dcfce7;
+        color: #15803d;
+        padding: 4px 10px;
         border-radius: 20px;
         white-space: nowrap;
       }
+
       .company-info {
-        font-size: 12px;
-        color: #636366;
-        margin-bottom: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
       }
+
       .source-tag {
         display: inline-block;
         font-size: 10px;
-        font-weight: 600;
-        padding: 2px 6px;
+        font-weight: 700;
+        padding: 3px 8px;
         border-radius: 4px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
+
       .purple-badge {
         background: #f3e8ff;
         color: #6b21a8;
       }
+
       .blue-badge {
         background: #e0f2fe;
         color: #0369a1;
       }
+
       .ai-insight {
-        background: #faf5ff;
-        border: 0.5px solid #f3e8ff;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-size: 12px;
+        background: var(--ai-light);
+        border: 1px solid var(--ai-border);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        font-size: 13px;
         color: #4c1d95;
         line-height: 1.5;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
       }
+
       .apply-btn {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #0a84ff;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary);
         text-decoration: none;
       }
+
       .apply-btn:hover {
         text-decoration: underline;
       }
@@ -992,13 +1151,14 @@
   </head>
   <body>
     <div class="app">
+      <!-- SIDEBAR NAV -->
       <nav class="sidebar">
-                <div class="sidebar-brand">
+        <div class="sidebar-brand">
           <div class="brand-name">Career Tracker</div>
           <div class="brand-sub">AI-Powered Career Platform</div>
         </div>
 
-                <div class="user-chip" id="user-chip">
+        <div class="user-chip" id="user-chip">
           <div class="user-avatar" id="user-avatar">?</div>
           <div class="user-chip-info">
             <div class="user-chip-name" id="user-chip-name">—</div>
@@ -1006,7 +1166,14 @@
           </div>
           <button
             onclick="logoutUser()"
-            style="margin-left:auto; background:none; border:none; color:#8e8e93; cursor:pointer; font-size:14px;"
+            style="
+              margin-left: auto;
+              background: none;
+              border: none;
+              color: #94a3b8;
+              cursor: pointer;
+              font-size: 16px;
+            "
             title="Log out"
           >
             <i class="ti ti-logout"></i>
@@ -1051,11 +1218,13 @@
           onclick="showPage('ai-interview')"
           id="nav-ai-interview"
         >
-          <i class="ti ti-message-question"></i>Interview Prep
+          <i class="ti ti-message-question"></i> Interview Prep
         </button>
       </nav>
 
+      <!-- MAIN CONTENT -->
       <div class="main">
+        <!-- AUTH PAGE -->
         <div class="page active" id="page-auth">
           <div class="page-header">
             <div class="page-header-text">
@@ -1066,7 +1235,10 @@
           <div class="page-body">
             <div class="auth-split">
               <div class="auth-panel">
-                <h3>Register</h3>
+                <h3>
+                  <i class="ti ti-user-plus" style="color: var(--primary)"></i>
+                  Register
+                </h3>
                 <div class="field">
                   <label>Name</label>
                   <input id="r-name" placeholder="Kashmir" />
@@ -1080,11 +1252,14 @@
                   <input id="r-pass" type="password" placeholder="••••••" />
                 </div>
                 <button class="submit-btn" onclick="authCall('register')">
-                  <i class="ti ti-user-plus"></i> Register
+                  <i class="ti ti-user-plus"></i> Register Account
                 </button>
               </div>
               <div class="auth-panel">
-                <h3>Login</h3>
+                <h3>
+                  <i class="ti ti-login" style="color: var(--primary)"></i>
+                  Login
+                </h3>
                 <div class="field">
                   <label>Email</label>
                   <input id="l-email" placeholder="k@test.com" />
@@ -1094,7 +1269,7 @@
                   <input id="l-pass" type="password" placeholder="••••••" />
                 </div>
                 <button class="submit-btn" onclick="authCall('login')">
-                  <i class="ti ti-login"></i> Login
+                  <i class="ti ti-login"></i> Log In
                 </button>
               </div>
             </div>
@@ -1103,15 +1278,15 @@
               style="
                 display: none;
                 margin-top: 16px;
-                padding: 10px 14px;
+                padding: 12px 16px;
                 border-radius: 8px;
                 font-size: 13px;
-                font-weight: 500;
+                font-weight: 600;
               "
             ></div>
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-auth"></span> Response
+                <span class="status-dot" id="dot-auth"></span> Response Output
               </div>
               <pre class="response" id="res-auth">
 Response will appear here…</pre
@@ -1120,11 +1295,12 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- USERS PAGE -->
         <div class="page" id="page-users">
           <div class="page-header">
             <div class="page-header-text">
-              <h2>Users</h2>
-              <p>Fetch all registered users</p>
+              <h2>Users Management</h2>
+              <p>Fetch all registered users from database</p>
             </div>
           </div>
           <div class="page-body">
@@ -1140,7 +1316,7 @@ Response will appear here…</pre
             </button>
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-users"></span> Response
+                <span class="status-dot" id="dot-users"></span> Response Output
               </div>
               <pre class="response" id="res-users">
 Response will appear here…</pre
@@ -1149,6 +1325,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- RESUMES PAGE -->
         <div class="page" id="page-resumes">
           <div class="page-header">
             <div class="page-header-text">
@@ -1162,22 +1339,29 @@ Response will appear here…</pre
           <div class="page-body">
             <div class="info-banner">
               <i class="ti ti-info-circle"></i>
-              Upload a PDF resume — Gemini will extract the text and return an
+              Upload a PDF resume — Gemini will extract text and calculate an
               ATS score with strengths &amp; weaknesses automatically.
             </div>
 
-                        <div class="field">
+            <div class="field">
               <label>Uploading as</label>
               <div
                 id="res-current-user"
-                style="padding:8px 11px; border:0.5px solid #c7c7cc; border-radius:8px; background:#f5f5f7; font-size:13px; color:#3c3c43;"
+                style="
+                  padding: 10px 14px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  background: var(--bg-surface);
+                  font-size: 13px;
+                  color: var(--text-secondary);
+                "
               >
                 Not logged in — please log in first
               </div>
             </div>
 
             <div class="field">
-              <label>Resume PDF</label>
+              <label>Resume PDF Document</label>
               <input
                 type="file"
                 id="res-file"
@@ -1196,14 +1380,15 @@ Response will appear here…</pre
                 id="btn-upload-resume"
                 onclick="uploadResume()"
               >
-                <i class="ti ti-upload"></i> Upload &amp; Analyze
+                <i class="ti ti-upload"></i> Upload &amp; Analyze Resume
               </button>
             </div>
 
+            <!-- ATS CARD RESULT -->
             <div class="ats-result-card" id="ats-result-card">
               <div class="ats-card-header">
                 <i class="ti ti-chart-bar"></i>
-                <span>ATS Analysis Result</span>
+                <span>ATS Analysis Summary</span>
               </div>
               <div class="ats-scores-grid">
                 <div class="ats-score-cell">
@@ -1269,7 +1454,8 @@ Response will appear here…</pre
 
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-resumes"></span> Raw Response
+                <span class="status-dot" id="dot-resumes"></span> Raw Core
+                Pipeline Response
               </div>
               <pre class="response" id="res-resumes">
 Response will appear here…</pre
@@ -1278,17 +1464,18 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- SKILLS PAGE -->
         <div class="page" id="page-skills">
           <div class="page-header">
             <div class="page-header-text">
-              <h2>Skills</h2>
+              <h2>Skills Profile</h2>
               <p>Add skills and assign them to users</p>
             </div>
           </div>
           <div class="page-body">
             <div class="field">
-              <label>Skill name</label>
-              <input id="sk-name" placeholder="React" />
+              <label>Skill Name</label>
+              <input id="sk-name" placeholder="React.js / Node.js" />
             </div>
             <div class="btn-row">
               <button
@@ -1306,11 +1493,11 @@ Response will appear here…</pre
                   )
                 "
               >
-                <i class="ti ti-plus"></i> Add Skill
-              
+                <i class="ti ti-plus"></i> Add New Skill
+              </button>
             </div>
 
-            <div class="section-divider">Add This Skill to Your Profile</div>
+            <div class="section-divider">Add Skill to Profile</div>
             <div class="field">
               <label>Skill</label>
               <select id="sk-id">
@@ -1318,7 +1505,7 @@ Response will appear here…</pre
               </select>
             </div>
             <button class="submit-btn" onclick="addSkillToMe()">
-              <i class="ti ti-link"></i> Add to My Skills
+              <i class="ti ti-link"></i> Add to My Skills Profile
             </button>
 
             <div class="section-divider">Your Gained Skills</div>
@@ -1327,17 +1514,17 @@ Response will appear here…</pre
               id="skills-login-hint"
               style="
                 display: none;
-                font-size: 12px;
-                color: #8e8e93;
-                margin-top: 8px;
+                font-size: 13px;
+                color: var(--text-muted);
+                margin-top: 10px;
               "
             >
-              Log in first to manage your skills.
+              Log in first to manage your skill list.
             </div>
 
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-skills"></span> Response
+                <span class="status-dot" id="dot-skills"></span> Response Output
               </div>
               <pre class="response" id="res-skills">
 Response will appear here…</pre
@@ -1346,6 +1533,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- JOBS PAGE -->
         <div class="page" id="page-jobs">
           <div class="page-header">
             <div class="page-header-text">
@@ -1410,7 +1598,7 @@ Response will appear here…</pre
 
             <div class="response-box">
               <div class="response-label">
-                <span class="status-dot" id="dot-jobs"></span> Response
+                <span class="status-dot" id="dot-jobs"></span> Response Output
               </div>
               <pre class="response" id="res-jobs">
 Response will appear here…</pre
@@ -1419,6 +1607,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- MATCHES PAGE -->
         <div class="page" id="page-matches">
           <div class="page-header">
             <div class="page-header-text">
@@ -1433,11 +1622,18 @@ Response will appear here…</pre
             >
           </div>
           <div class="page-body">
-                        <div class="field">
+            <div class="field">
               <label>Matching for</label>
               <div
                 id="mat-current-user"
-                style="padding:8px 11px; border:0.5px solid #c7c7cc; border-radius:8px; background:#f5f5f7; font-size:13px; color:#3c3c43;"
+                style="
+                  padding: 10px 14px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  background: var(--bg-surface);
+                  font-size: 13px;
+                  color: var(--text-secondary);
+                "
               >
                 Not logged in — please log in first
               </div>
@@ -1454,7 +1650,7 @@ Response will appear here…</pre
             <button
               class="submit-btn dark"
               id="btn-load-more-jobs"
-              style="display: none; margin-top: 12px"
+              style="display: none; margin-top: 16px"
               onclick="loadMoreJobMatches()"
             >
               <i class="ti ti-chevron-down"></i> Load More Matches
@@ -1472,6 +1668,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- ROADMAP STORAGE PAGE -->
         <div class="page" id="page-roadmaps">
           <div class="page-header">
             <div class="page-header-text">
@@ -1481,7 +1678,7 @@ Response will appear here…</pre
           </div>
           <div class="page-body">
             <div class="field">
-              <label>User target</label>
+              <label>User Target</label>
               <select id="rm-uid" class="user-select-dropdown">
                 <option value="">— select user —</option>
               </select>
@@ -1572,6 +1769,7 @@ Response will appear here…</pre
             <div class="response-box">
               <div class="response-label">
                 <span class="status-dot" id="dot-roadmaps"></span> Response
+                Output
               </div>
               <pre class="response" id="res-roadmaps">
 Response will appear here…</pre
@@ -1580,6 +1778,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- AI ROADMAP PAGE -->
         <div class="page" id="page-ai-roadmap">
           <div class="page-header ai-header">
             <div class="page-header-text">
@@ -1595,16 +1794,25 @@ Response will appear here…</pre
           </div>
           <div class="page-body">
             <div class="field">
-                                          <label style="color: #3c3c43">Target User Context</label>
+              <label style="color: var(--text-primary)"
+                >Target User Context</label
+              >
               <div
                 id="airm-current-user"
-                style="padding:8px 11px; border:0.5px solid #c7c7cc; border-radius:8px; background:#f5f5f7; font-size:13px; color:#3c3c43;"
+                style="
+                  padding: 10px 14px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  background: var(--bg-surface);
+                  font-size: 13px;
+                  color: var(--text-secondary);
+                "
               >
                 Not logged in — please log in first
               </div>
             </div>
             <div class="field">
-                            <label style="color: #3c3c43"
+              <label style="color: var(--text-primary)"
                 >Ambitious Career Target Goal</label
               >
               <input
@@ -1622,8 +1830,11 @@ Response will appear here…</pre
 
             <div class="steps-preview" id="ai-roadmap-steps"></div>
 
-            <div class="response-box" style="border-top-color: #e9d5ff">
-              <div class="response-label" style="color: #c4b5fd">
+            <div
+              class="response-box"
+              style="border-top-color: var(--ai-border)"
+            >
+              <div class="response-label" style="color: #7c3aed">
                 <span class="status-dot" id="dot-ai-roadmap"></span> Raw Output
                 Stream JSON
               </div>
@@ -1634,6 +1845,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- AI COVER LETTER PAGE -->
         <div class="page" id="page-ai-cover">
           <div class="page-header ai-header">
             <div class="page-header-text">
@@ -1649,26 +1861,37 @@ Response will appear here…</pre
           </div>
           <div class="page-body">
             <div class="field">
-                                          <label style="color: #3c3c43">User Context Profile</label>
+              <label style="color: var(--text-primary)"
+                >User Context Profile</label
+              >
               <div
                 id="aicl-current-user"
-                style="padding:8px 11px; border:0.5px solid #c7c7cc; border-radius:8px; background:#f5f5f7; font-size:13px; color:#3c3c43;"
+                style="
+                  padding: 10px 14px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  background: var(--bg-surface);
+                  font-size: 13px;
+                  color: var(--text-secondary);
+                "
               >
                 Not logged in — please log in first
               </div>
             </div>
             <div class="two-col">
               <div class="field">
-                                <label style="color: #3c3c43">Target Job Title</label>
+                <label style="color: var(--text-primary)"
+                  >Target Job Title</label
+                >
                 <input id="aicl-title" placeholder="Staff Software Engineer" />
               </div>
               <div class="field">
-                                <label style="color: #3c3c43">Target Company</label>
+                <label style="color: var(--text-primary)">Target Company</label>
                 <input id="aicl-company" placeholder="OpenAI" />
               </div>
             </div>
             <div class="field">
-                            <label style="color: #3c3c43"
+              <label style="color: var(--text-primary)"
                 >Job Description Details (Optional context expansion
                 fallback)</label
               >
@@ -1689,8 +1912,11 @@ Response will appear here…</pre
 
             <div class="cover-letter-out" id="cover-letter-display"></div>
 
-            <div class="response-box" style="border-top-color: #e9d5ff">
-              <div class="response-label" style="color: #c4b5fd">
+            <div
+              class="response-box"
+              style="border-top-color: var(--ai-border)"
+            >
+              <div class="response-label" style="color: #7c3aed">
                 <span class="status-dot" id="dot-ai-cover"></span> Raw String
                 Wrapper Data Response
               </div>
@@ -1701,6 +1927,7 @@ Response will appear here…</pre
           </div>
         </div>
 
+        <!-- AI INTERVIEW PREP PAGE -->
         <div class="page" id="page-ai-interview">
           <div class="page-header ai-header">
             <div class="page-header-text">
@@ -1716,18 +1943,25 @@ Response will appear here…</pre
           </div>
           <div class="page-body">
             <div class="field">
-                                          <label style="color: #3c3c43"
+              <label style="color: var(--text-primary)"
                 >Target Applicant Identity Context</label
               >
               <div
                 id="aiip-current-user"
-                style="padding:8px 11px; border:0.5px solid #c7c7cc; border-radius:8px; background:#f5f5f7; font-size:13px; color:#3c3c43;"
+                style="
+                  padding: 10px 14px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  background: var(--bg-surface);
+                  font-size: 13px;
+                  color: var(--text-secondary);
+                "
               >
                 Not logged in — please log in first
               </div>
             </div>
             <div class="field">
-                            <label style="color: #3c3c43"
+              <label style="color: var(--text-primary)"
                 >Target Job Description / Industry Target Vector Context</label
               >
               <textarea
@@ -1747,14 +1981,17 @@ Response will appear here…</pre
             <button
               class="submit-btn dark"
               id="btn-load-more-questions"
-              style="display: none; margin-top: 12px"
+              style="display: none; margin-top: 16px"
               onclick="loadMoreQuestions()"
             >
               <i class="ti ti-chevron-down"></i> Load More Questions
             </button>
 
-            <div class="response-box" style="border-top-color: #e9d5ff">
-              <div class="response-label" style="color: #c4b5fd">
+            <div
+              class="response-box"
+              style="border-top-color: var(--ai-border)"
+            >
+              <div class="response-label" style="color: #7c3aed">
                 <span class="status-dot" id="dot-ai-interview"></span> Raw
                 Structural JSON Matrix Node Response
               </div>

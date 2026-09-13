@@ -1,17 +1,28 @@
+/**
+ * Career Tracker — AI-Powered Career Platform
+ * Frontend Controller & API Integration Script
+ */
+
 const BASE_URL = "http://localhost:3000";
+
+// Global Active User State
 let activeUserId = localStorage.getItem("tracker_userId") || "";
 let activeUserName = localStorage.getItem("tracker_userName") || "";
 
-// Pagination state for "Load More" panels
+// Pagination State: Job Matches
 let allJobMatches = [];
 let jobMatchesShown = 0;
 const JOB_MATCHES_PAGE_SIZE = 5;
 
+// Pagination State: Interview Questions
 let allInterviewQuestions = [];
 let questionsShown = 0;
 const QUESTIONS_PAGE_SIZE = 5;
 
-// Initialize System on Payload Load Frame
+// ==========================================
+// 1. SYSTEM INITIALIZATION
+// ==========================================
+
 window.addEventListener("DOMContentLoaded", () => {
   updateActiveUserUIState();
   fetchUsersDropdownOptions();
@@ -19,30 +30,23 @@ window.addEventListener("DOMContentLoaded", () => {
   fetchUserSkillsList(activeUserId);
 });
 
-// Simple Short Alias Helper Element Fetchers
+// ==========================================
+// 2. DOM HELPER UTILITIES
+// ==========================================
+
+/** Safe element value retriever */
 function g(id) {
-  return document.getElementById(id).value
-    ? document.getElementById(id).value.trim()
-    : "";
+  const el = document.getElementById(id);
+  return el && el.value ? el.value.trim() : "";
 }
+
+/** Clear input value by ID */
 function clearInput(id) {
-  document.getElementById(id).value = "";
+  const el = document.getElementById(id);
+  if (el) el.value = "";
 }
 
-function logoutUser() {
-  activeUserId = "";
-  activeUserName = "";
-  localStorage.removeItem("tracker_userId");
-  localStorage.removeItem("tracker_userName");
-  updateActiveUserUIState();
-  fetchUserSkillsList("");
-  document
-    .querySelectorAll(".user-select-dropdown")
-    .forEach((d) => (d.value = ""));
-  showPage("auth");
-}
-
-// Core View System Controller Router Panel Switcher
+/** Toggle Page Views */
 function showPage(pageId) {
   document
     .querySelectorAll(".page")
@@ -51,11 +55,18 @@ function showPage(pageId) {
     .querySelectorAll(".nav-item")
     .forEach((n) => n.classList.remove("active"));
 
-  document.getElementById(`page-${pageId}`).classList.add("active");
-  document.getElementById(`nav-${pageId}`).classList.add("active");
+  const targetPage = document.getElementById(`page-${pageId}`);
+  const targetNav = document.getElementById(`nav-${pageId}`);
+
+  if (targetPage) targetPage.classList.add("active");
+  if (targetNav) targetNav.classList.add("active");
 }
 
-// UI Active Configuration Synchronization State Management
+// ==========================================
+// 3. USER SESSION & AUTHENTICATION
+// ==========================================
+
+/** Update UI components reflecting current user status */
 function updateActiveUserUIState() {
   const chip = document.getElementById("user-chip");
   const avatar = document.getElementById("user-avatar");
@@ -70,37 +81,121 @@ function updateActiveUserUIState() {
   ];
 
   if (activeUserId && activeUserName) {
-    chip.classList.add("visible");
-    avatar.innerText = activeUserName.charAt(0).toUpperCase();
-    nameLabel.innerText = activeUserName;
+    if (chip) chip.classList.add("visible");
+    if (avatar) avatar.innerText = activeUserName.charAt(0).toUpperCase();
+    if (nameLabel) nameLabel.innerText = activeUserName;
 
     lockedUserFields.forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
-        el.innerText = `${activeUserName} (logged in)`;
+        el.innerText = `${activeUserName} (Logged in)`;
         el.style.color = "#107c41";
       }
     });
 
-    // Auto fill every native select instance class parameter across elements loop tracker
+    // Synchronize select dropdowns with active user ID
     setTimeout(() => {
       document.querySelectorAll(".user-select-dropdown").forEach((dropdown) => {
         dropdown.value = activeUserId;
       });
-    }, 300);
+    }, 200);
   } else {
-    chip.classList.remove("visible");
+    if (chip) chip.classList.remove("visible");
     lockedUserFields.forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
         el.innerText = "Not logged in — please log in first";
-        el.style.color = "#3c3c43";
+        el.style.color = "#64748b";
       }
     });
   }
 }
 
-// Dynamic Options Lists Synchronizers
+/** Log out active user and reset application state */
+function logoutUser() {
+  activeUserId = "";
+  activeUserName = "";
+  localStorage.removeItem("tracker_userId");
+  localStorage.removeItem("tracker_userName");
+
+  updateActiveUserUIState();
+  fetchUserSkillsList("");
+
+  document
+    .querySelectorAll(".user-select-dropdown")
+    .forEach((d) => (d.value = ""));
+
+  showPage("auth");
+}
+
+/** Authenticate or Register User */
+async function authCall(typePath) {
+  const payload =
+    typePath === "register"
+      ? { name: g("r-name"), email: g("r-email"), password: g("r-pass") }
+      : { email: g("l-email"), password: g("l-pass") };
+
+  // Validation
+  if (
+    !payload.email ||
+    !payload.password ||
+    (typePath === "register" && !payload.name)
+  ) {
+    alert("Please fill in all required authorization fields.");
+    return;
+  }
+
+  const feedback = document.getElementById("auth-feedback");
+  let succeeded = false;
+
+  await doCall("POST", `/auth/${typePath}`, payload, "auth", (data) => {
+    const user = data && data.user ? data.user : data;
+
+    if (user && user.id) {
+      succeeded = true;
+      activeUserId = user.id;
+      activeUserName = user.name;
+      localStorage.setItem("tracker_userId", activeUserId);
+      localStorage.setItem("tracker_userName", activeUserName);
+
+      updateActiveUserUIState();
+      fetchUsersDropdownOptions();
+      fetchUserSkillsList(activeUserId);
+
+      if (feedback) {
+        feedback.style.display = "block";
+        feedback.style.background = "#dcfce7";
+        feedback.style.color = "#15803d";
+        feedback.innerText =
+          typePath === "register"
+            ? `✅ Successfully registered and logged in as ${user.name}`
+            : `✅ Logged in as ${user.name}`;
+      }
+
+      clearInput("r-name");
+      clearInput("r-email");
+      clearInput("r-pass");
+      clearInput("l-email");
+      clearInput("l-pass");
+    }
+  });
+
+  if (!succeeded && feedback) {
+    feedback.style.display = "block";
+    feedback.style.background = "#fee2e2";
+    feedback.style.color = "#b91c1c";
+    feedback.innerText =
+      typePath === "register"
+        ? "❌ Registration failed — email may already be in use."
+        : "❌ Login failed — invalid email or password.";
+  }
+}
+
+// ==========================================
+// 4. DROPDOWNS & USER SKILLS MANAGEMENT
+// ==========================================
+
+/** Fetch registered users list for dropdown options */
 async function fetchUsersDropdownOptions() {
   try {
     const res = await fetch(`${BASE_URL}/users`);
@@ -108,14 +203,14 @@ async function fetchUsersDropdownOptions() {
     const users = await res.json();
     populateUsersLists(users);
   } catch (e) {
-    console.error("Dropdown fetch error sync mapping failure context:", e);
+    console.error("Failed to load users dropdown options:", e);
   }
 }
 
+/** Populate user dropdown elements */
 function populateUsersLists(usersArray) {
   if (!Array.isArray(usersArray)) return;
   document.querySelectorAll(".user-select-dropdown").forEach((dropdown) => {
-    // Keep base framework option placeholder
     dropdown.innerHTML = '<option value="">— select user —</option>';
     usersArray.forEach((u) => {
       const opt = document.createElement("option");
@@ -131,6 +226,7 @@ function populateUsersLists(usersArray) {
   }
 }
 
+/** Fetch available system skills for dropdown */
 async function fetchSkillsDropdowns() {
   try {
     const res = await fetch(`${BASE_URL}/skills`);
@@ -146,11 +242,11 @@ async function fetchSkillsDropdowns() {
       skSelect.appendChild(opt);
     });
   } catch (e) {
-    console.error("Skills select population process context halt failure:", e);
+    console.error("Failed to load skills dropdown options:", e);
   }
 }
 
-// Add the currently selected skill to the logged-in user's profile
+/** Assign selected skill to logged-in user profile */
 async function addSkillToMe() {
   const skillId = g("sk-id");
   if (!activeUserId) {
@@ -158,7 +254,7 @@ async function addSkillToMe() {
     return;
   }
   if (!skillId) {
-    alert("Please select a skill to add.");
+    alert("Please select a skill from the list.");
     return;
   }
   await doCall(
@@ -170,7 +266,7 @@ async function addSkillToMe() {
   );
 }
 
-// Fetch and render the skills currently assigned to the logged-in user
+/** Retrieve and display logged-in user's skills */
 async function fetchUserSkillsList(userId) {
   const container = document.getElementById("my-skills-list");
   const loginHint = document.getElementById("skills-login-hint");
@@ -188,23 +284,28 @@ async function fetchUserSkillsList(userId) {
     if (!res.ok) return;
     const userSkills = await res.json();
     container.innerHTML = "";
+
     if (userSkills.length === 0) {
       container.innerHTML =
-        '<div style="font-size:12px; color:#8e8e93;">No skills added yet.</div>';
+        '<div style="font-size:13px; color:#94a3b8;">No skills added to profile yet.</div>';
       return;
     }
+
     userSkills.forEach((us) => {
       const chip = document.createElement("span");
       chip.className = "skill-chip";
-      chip.innerHTML = `<i class="ti ti-check"></i> ${us.skill.name}`;
+      chip.innerHTML = `<i class="ti ti-check"></i> ${us.skill ? us.skill.name : us.name || "Skill"}`;
       container.appendChild(chip);
     });
   } catch (e) {
-    console.error("Failed to fetch user skills:", e);
+    console.error("Failed to fetch user skills profile:", e);
   }
 }
 
-// Standard Base Centralized Promise Pipeline Fetch Wrapper Native Request Logic
+// ==========================================
+// 5. CORE API FETCH PIPELINE WRAPPER
+// ==========================================
+
 async function doCall(
   method,
   route,
@@ -215,13 +316,8 @@ async function doCall(
   const dot = document.getElementById(`dot-${sectionKey}`);
   const pre = document.getElementById(`res-${sectionKey}`);
 
-  if (dot) {
-    dot.className = "status-dot loading";
-  }
-  if (pre) {
-    pre.innerText =
-      "Query executing natively across network stream interfaces...";
-  }
+  if (dot) dot.className = "status-dot loading";
+  if (pre) pre.innerText = "Executing request across network interface...";
 
   const config = {
     method: method,
@@ -242,68 +338,18 @@ async function doCall(
     } else {
       if (dot) dot.className = "status-dot err";
       if (pre)
-        pre.innerText = `Error State Detected (${response.status}):\n${JSON.stringify(parsedData, null, 2)}`;
+        pre.innerText = `Server Error (${response.status}):\n${JSON.stringify(parsedData, null, 2)}`;
     }
   } catch (err) {
     if (dot) dot.className = "status-dot err";
-    if (pre)
-      pre.innerText = `Network Pipe Framework Interrupted Communication Failure State Stack:\n${err.message}`;
+    if (pre) pre.innerText = `Network Connection Error:\n${err.message}`;
   }
 }
 
-// Authorization Dedicated Call Processor Custom Action Route Logic
-async function authCall(typePath) {
-  const payload =
-    typePath === "register"
-      ? { name: g("r-name"), email: g("r-email"), password: g("r-pass") }
-      : { email: g("l-email"), password: g("l-pass") };
+// ==========================================
+// 6. RESUME UPLOAD & ATS ANALYSIS
+// ==========================================
 
-  const feedback = document.getElementById("auth-feedback");
-  let succeeded = false;
-
-  await doCall("POST", `/auth/${typePath}`, payload, "auth", (data) => {
-    // Login responses are wrapped as { user }; register returns the raw user object
-    const user = data && data.user ? data.user : data;
-
-    if (user && user.id) {
-      succeeded = true;
-      activeUserId = user.id;
-      activeUserName = user.name;
-      localStorage.setItem("tracker_userId", activeUserId);
-      localStorage.setItem("tracker_userName", activeUserName);
-      updateActiveUserUIState();
-      fetchUsersDropdownOptions();
-      fetchUserSkillsList(activeUserId);
-
-      feedback.style.display = "block";
-      feedback.style.background = "#e1fbf2";
-      feedback.style.color = "#107c41";
-      feedback.innerText =
-        typePath === "register"
-          ? `✅ Registered and logged in as ${user.name}`
-          : `✅ Logged in as ${user.name}`;
-
-      // Wipe forms out clean cleanly
-      clearInput("r-name");
-      clearInput("r-email");
-      clearInput("r-pass");
-      clearInput("l-email");
-      clearInput("l-pass");
-    }
-  });
-
-  if (!succeeded) {
-    feedback.style.display = "block";
-    feedback.style.background = "#ffe5e5";
-    feedback.style.color = "#c0392b";
-    feedback.innerText =
-      typePath === "register"
-        ? "❌ Registration failed — that email may already be registered."
-        : "❌ Login failed — check your email and password.";
-  }
-}
-
-// File Input Helper Label Rendering Core Track Logic
 function showFileName() {
   const fileInput = document.getElementById("res-file");
   const tag = document.getElementById("file-name-tag");
@@ -316,7 +362,6 @@ function showFileName() {
   }
 }
 
-// Multipart File Processing Custom Pipeline Engine Target
 async function uploadResume() {
   const userId = activeUserId;
   const fileInput = document.getElementById("res-file");
@@ -325,20 +370,22 @@ async function uploadResume() {
   const btn = document.getElementById("btn-upload-resume");
   const card = document.getElementById("ats-result-card");
 
-  if (!userId || fileInput.files.length === 0) {
-    alert(
-      "Please select a valid user target context identity and point to a local PDF resume element artifact structure first.",
-    );
+  if (!userId) {
+    alert("Please log in before uploading a resume.");
+    return;
+  }
+  if (fileInput.files.length === 0) {
+    alert("Please select a PDF resume file to upload.");
     return;
   }
 
-  // Setup loading states UI
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Processing AI Extraction...';
-  card.classList.remove("visible");
-  dot.className = "status-dot loading";
-  pre.innerText =
-    "Uploading raw binary buffers... Running Gemini Document Parsing Analysis Context Blocks...";
+  btn.innerHTML =
+    '<span class="spinner"></span> Analyzing Resume with Gemini AI...';
+  if (card) card.classList.remove("visible");
+  if (dot) dot.className = "status-dot loading";
+  if (pre)
+    pre.innerText = "Parsing PDF document and computing ATS score analysis...";
 
   const formData = new FormData();
   formData.append("userId", userId);
@@ -351,21 +398,17 @@ async function uploadResume() {
     });
     const data = await res.json();
 
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-upload"></i> Upload &amp; Analyze';
-
     if (res.ok) {
-      dot.className = "status-dot ok";
-      pre.innerText = JSON.stringify(data, null, 2);
+      if (dot) dot.className = "status-dot ok";
+      if (pre) pre.innerText = JSON.stringify(data, null, 2);
 
-      // Map the processed engine analysis variables right onto our beautiful system display tracking dashboard card structure parameters natively!
-      // Map the processed engine analysis variables right onto our beautiful system display tracking dashboard card structure parameters natively!
+      // Populate ATS Metric Card
       if (data.resume && data.resume.analysis) {
         const analysis = data.resume.analysis;
-        document.getElementById("score-ats").innerText =
-          `${data.resume.atsScore || 0}`;
-        document.getElementById("bar-ats").style.width =
-          `${data.resume.atsScore || 0}%`;
+        const atsScore = data.resume.atsScore || 0;
+
+        document.getElementById("score-ats").innerText = `${atsScore}`;
+        document.getElementById("bar-ats").style.width = `${atsScore}%`;
 
         document.getElementById("score-grammar").innerText =
           `${analysis.grammarScore || 0}`;
@@ -382,7 +425,6 @@ async function uploadResume() {
         document.getElementById("bar-keyword").style.width =
           `${analysis.keywordScore || 0}%`;
 
-        // Render explicit list tracking arrays collections loops safely
         const strList = document.getElementById("ats-strengths");
         const wkList = document.getElementById("ats-weaknesses");
         strList.innerHTML = "";
@@ -402,40 +444,45 @@ async function uploadResume() {
             wkList.appendChild(li);
           });
         }
-        card.classList.add("visible");
+        if (card) card.classList.add("visible");
       }
     } else {
-      dot.className = "status-dot err";
-      pre.innerText = `Pipeline Rejection Halt Response Event Status (${res.status}):\n${JSON.stringify(data, null, 2)}`;
+      if (dot) dot.className = "status-dot err";
+      if (pre)
+        pre.innerText = `Error (${res.status}):\n${JSON.stringify(data, null, 2)}`;
     }
   } catch (err) {
+    if (dot) dot.className = "status-dot err";
+    if (pre) pre.innerText = `Upload Failed:\n${err.message}`;
+  } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="ti ti-upload"></i> Upload &amp; Analyze';
-    dot.className = "status-dot err";
-    pre.innerText = `File stream data pipeline link connection fatal breakdown stack track crash logs:\n${err.message}`;
   }
 }
 
-// Match Dashboard Aggregator Processing Logic
+// ==========================================
+// 7. AI JOB MATCHING ENGINE
+// ==========================================
+
 function renderJobCard(job) {
   const card = document.createElement("div");
   card.className = "job-card";
   const badgeClass =
     job.source === "Local Database" ? "purple-badge" : "blue-badge";
   card.innerHTML = `
-          <div class="card-header">
-            <h3>${job.title}</h3>
-            <span class="score-badge">${job.matchScore}% Match</span>
-          </div>
-          <div class="company-info">${job.company} • ${job.location}</div>
-          <span class="source-tag ${badgeClass}">${job.source}</span>
-          <div class="ai-insight">
-            <strong>🤖 AI Analytics Reasoning Metric:</strong> ${job.matchReason}
-          </div>
-          <a href="${job.applyLink === "Internal Application System" ? "#" : job.applyLink}" target="_blank" class="apply-btn">
-            ${job.source === "Local Database" ? "Execute Internal Direct Application" : "Open External Web Target Link ↗"}
-          </a>
-        `;
+    <div class="card-header">
+      <h3>${job.title}</h3>
+      <span class="score-badge">${job.matchScore}% Match</span>
+    </div>
+    <div class="company-info">${job.company} • ${job.location}</div>
+    <span class="source-tag ${badgeClass}">${job.source}</span>
+    <div class="ai-insight">
+      <strong>🤖 AI Match Analysis:</strong> ${job.matchReason}
+    </div>
+    <a href="${job.applyLink === "Internal Application System" ? "#" : job.applyLink}" target="_blank" class="apply-btn">
+      ${job.source === "Local Database" ? "Apply Directly" : "View External Job Listing ↗"}
+    </a>
+  `;
   return card;
 }
 
@@ -446,11 +493,14 @@ function renderNextJobMatchesPage() {
     jobMatchesShown,
     jobMatchesShown + JOB_MATCHES_PAGE_SIZE,
   );
+
   nextBatch.forEach((job) => listContainer.appendChild(renderJobCard(job)));
   jobMatchesShown += nextBatch.length;
 
-  loadMoreBtn.style.display =
-    jobMatchesShown < allJobMatches.length ? "inline-flex" : "none";
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display =
+      jobMatchesShown < allJobMatches.length ? "inline-flex" : "none";
+  }
 }
 
 function loadMoreJobMatches() {
@@ -464,92 +514,98 @@ async function fetchJobMatches() {
   const btn = document.getElementById("btn-fetch-matches");
 
   if (!uid) {
-    alert(
-      "Select target user identity context parameter step trace vector first.",
-    );
+    alert("Please log in to compute job matches for your profile.");
     return;
   }
 
   listContainer.innerHTML = "";
-  loadMoreBtn.style.display = "none";
+  if (loadMoreBtn) loadMoreBtn.style.display = "none";
   allJobMatches = [];
   jobMatchesShown = 0;
+
   btn.disabled = true;
   btn.innerHTML =
-    '<span class="spinner"></span> Running Internet Queries &amp; Core Model Cross Rankings Calculations...';
+    '<span class="spinner"></span> Running Job Queries &amp; AI Match Rankings...';
 
-  await doCall("GET", `/jobs/matches/${uid}`, null, "matches", (data) => {
+  try {
+    await doCall("GET", `/jobs/matches/${uid}`, null, "matches", (data) => {
+      if (data && Array.isArray(data.matches)) {
+        if (data.matches.length === 0) {
+          listContainer.innerHTML =
+            '<div style="font-size:13px; color:#64748b; padding:12px;">No active matches found for your profile signature. Try adding more skills or uploading an updated resume.</div>';
+          return;
+        }
+        allJobMatches = data.matches;
+        renderNextJobMatchesPage();
+      }
+    });
+  } finally {
     btn.disabled = false;
     btn.innerHTML =
       '<i class="ti ti-bolt"></i> Compute &amp; Display Ranked Matches';
-
-    if (data && Array.isArray(data.matches)) {
-      if (data.matches.length === 0) {
-        listContainer.innerHTML =
-          '<div style="font-size:13px; color:#636366; padding:12px;">No active matches located inside structural processing vectors matching this profile data signature currently. Upload a clean distinct resume profile structure or broaden target system constraints.</div>';
-        return;
-      }
-      allJobMatches = data.matches;
-      renderNextJobMatchesPage();
-    }
-  });
-  btn.disabled = false;
-  btn.innerHTML =
-    '<i class="ti ti-bolt"></i> Compute &amp; Display Ranked Matches';
+  }
 }
 
-// AI Features Path Roadmap Matrix Generation Core Engine Pipeline Link
+// ==========================================
+// 8. AI CAREER ROADMAP GENERATION
+// ==========================================
+
 async function generateAiRoadmap() {
   const uid = activeUserId;
   const goal = document.getElementById("airm-goal").value.trim();
   const display = document.getElementById("ai-roadmap-steps");
   const btn = document.getElementById("btn-generate-roadmap");
 
-  if (!uid || !goal) {
-    alert(
-      "Target identity verification ID code and objective matrix fields required parameter variables framework missing.",
-    );
+  if (!uid) {
+    alert("Please log in first to generate your AI career roadmap.");
+    return;
+  }
+  if (!goal) {
+    alert("Please enter a target career goal (e.g., Full Stack Engineer).");
     return;
   }
 
   display.innerHTML = "";
   display.classList.remove("visible");
+
   btn.disabled = true;
   btn.innerHTML =
-    '<span class="spinner"></span> Deep Path Compiling Tracking Mapping...';
+    '<span class="spinner"></span> Synthesizing Career Path Matrix...';
 
-  await doCall(
-    "POST",
-    "/roadmaps/generate-ai",
-    { userId: uid, title: goal },
-    "ai-roadmap",
-    (data) => {
-      btn.disabled = false;
-      btn.innerHTML =
-        '<i class="ti ti-wand"></i> Synthesize Career Path Matrix';
-
-      if (data && data.roadmap && Array.isArray(data.roadmap.steps)) {
-        data.roadmap.steps.forEach((step, idx) => {
-          const card = document.createElement("div");
-          card.className = "step-card";
-          card.innerHTML = `
-          <div class="step-num">${idx + 1}</div>
-          <div class="step-content">
-            <div class="step-title">${step.title}</div>
-            <div class="step-desc">${step.description}</div>
-          </div>
-        `;
-          display.appendChild(card);
-        });
-        display.classList.add("visible");
-      }
-    },
-  );
-  btn.disabled = false;
-  btn.innerHTML = '<i class="ti ti-wand"></i> Synthesize Career Path Matrix';
+  try {
+    await doCall(
+      "POST",
+      "/roadmaps/generate-ai",
+      { userId: uid, title: goal },
+      "ai-roadmap",
+      (data) => {
+        if (data && data.roadmap && Array.isArray(data.roadmap.steps)) {
+          data.roadmap.steps.forEach((step, idx) => {
+            const card = document.createElement("div");
+            card.className = "step-card";
+            card.innerHTML = `
+              <div class="step-num">${idx + 1}</div>
+              <div class="step-content">
+                <div class="step-title">${step.title}</div>
+                <div class="step-desc">${step.description}</div>
+              </div>
+            `;
+            display.appendChild(card);
+          });
+          display.classList.add("visible");
+        }
+      },
+    );
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-wand"></i> Synthesize Career Path Matrix';
+  }
 }
 
-// AI Document Assembly Processing Pipeline Block Router Trigger
+// ==========================================
+// 9. AI COVER LETTER GENERATION
+// ==========================================
+
 async function generateCoverLetter() {
   const uid = activeUserId;
   const title = document.getElementById("aicl-title").value.trim();
@@ -558,60 +614,66 @@ async function generateCoverLetter() {
   const display = document.getElementById("cover-letter-display");
   const btn = document.getElementById("btn-generate-cover");
 
-  if (!uid || !title || !company) {
-    alert(
-      "Ensure user target profile selection, title fields, and target firm variable context constraints parameters parameters match correctly.",
-    );
+  if (!uid) {
+    alert("Please log in first before generating a cover letter.");
+    return;
+  }
+  if (!title || !company) {
+    alert("Please specify target Job Title and Company Name.");
     return;
   }
 
   display.innerText = "";
   display.classList.remove("visible");
+
   btn.disabled = true;
   btn.innerHTML =
-    '<span class="spinner"></span> Framing Contextual Document Structuring Engines...';
+    '<span class="spinner"></span> Drafting Custom Cover Letter...';
 
-  await doCall(
-    "POST",
-    "/resumes/cover-letter",
-    {
-      userId: uid,
-      jobTitle: title,
-      company: company,
-      jobDescription: fallbackDesc,
-    },
-    "ai-cover",
-    (data) => {
-      btn.disabled = false;
-      btn.innerHTML =
-        '<i class="ti ti-file-text"></i> Generate Tailored Document';
-
-      if (data && data.coverLetter) {
-        display.innerText = data.coverLetter;
-        display.classList.add("visible");
-      }
-    },
-  );
-  btn.disabled = false;
-  btn.innerHTML = '<i class="ti ti-file-text"></i> Generate Tailored Document';
+  try {
+    await doCall(
+      "POST",
+      "/resumes/cover-letter",
+      {
+        userId: uid,
+        jobTitle: title,
+        company: company,
+        jobDescription: fallbackDesc,
+      },
+      "ai-cover",
+      (data) => {
+        if (data && data.coverLetter) {
+          display.innerText = data.coverLetter;
+          display.classList.add("visible");
+        }
+      },
+    );
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML =
+      '<i class="ti ti-file-text"></i> Generate Tailored Document';
+  }
 }
 
-// AI Prediction Interview Grid Bank Simulator Layout Frame Process Tracker
+// ==========================================
+// 10. AI INTERVIEW PREPARATION
+// ==========================================
+
 function renderQuestionCard(q) {
   const typeClass =
     q.type && q.type.toLowerCase() === "technical" ? "technical" : "behavioral";
   const card = document.createElement("div");
   card.className = "question-card";
   card.innerHTML = `
-          <div class="q-header">
-            <span class="q-type-badge ${typeClass}">${q.type || "General CheckPoint"}</span>
-          </div>
-          <div class="q-text">${q.question}</div>
-          <div class="q-tip">
-            <i class="ti ti-bulb"></i>
-            <span><strong>Optimal Approach Strategy Recommendation Blueprint:</strong> ${q.idealAnswerGuideline || q.idealAnswer}</span>
-          </div>
-        `;
+    <div class="q-header">
+      <span class="q-type-badge ${typeClass}">${q.type || "General"}</span>
+    </div>
+    <div class="q-text">${q.question}</div>
+    <div class="q-tip">
+      <i class="ti ti-bulb"></i>
+      <span><strong>Suggested Answer Strategy:</strong> ${q.idealAnswerGuideline || q.idealAnswer}</span>
+    </div>
+  `;
   return card;
 }
 
@@ -622,12 +684,15 @@ function renderNextQuestionsPage() {
     questionsShown,
     questionsShown + QUESTIONS_PAGE_SIZE,
   );
+
   nextBatch.forEach((q) => display.appendChild(renderQuestionCard(q)));
   questionsShown += nextBatch.length;
   display.classList.add("visible");
 
-  loadMoreBtn.style.display =
-    questionsShown < allInterviewQuestions.length ? "inline-flex" : "none";
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display =
+      questionsShown < allInterviewQuestions.length ? "inline-flex" : "none";
+  }
 }
 
 function loadMoreQuestions() {
@@ -641,39 +706,42 @@ async function generateInterviewPrep() {
   const loadMoreBtn = document.getElementById("btn-load-more-questions");
   const btn = document.getElementById("btn-generate-interview");
 
-  if (!uid || !contextDesc) {
-    alert(
-      "Missing target applicant reference context identifier values or target verification criteria string blocks.",
-    );
+  if (!uid) {
+    alert("Please log in first to generate interview questions.");
+    return;
+  }
+  if (!contextDesc) {
+    alert("Please enter a target job description or industry context.");
     return;
   }
 
   display.innerHTML = "";
   display.classList.remove("visible");
-  loadMoreBtn.style.display = "none";
+  if (loadMoreBtn) loadMoreBtn.style.display = "none";
+
   allInterviewQuestions = [];
   questionsShown = 0;
+
   btn.disabled = true;
   btn.innerHTML =
-    '<span class="spinner"></span> Processing Predictive Interview Simulation Scenarios Framework...';
+    '<span class="spinner"></span> Generating Interview Scenarios...';
 
-  await doCall(
-    "POST",
-    "/resumes/interview-prep",
-    { userId: uid, jobDescription: contextDesc },
-    "ai-interview",
-    (data) => {
-      btn.disabled = false;
-      btn.innerHTML =
-        '<i class="ti ti-brain"></i> Construct Adaptive Questions Bank';
-
-      if (data && Array.isArray(data.interviewPrep)) {
-        allInterviewQuestions = data.interviewPrep;
-        renderNextQuestionsPage();
-      }
-    },
-  );
-  btn.disabled = false;
-  btn.innerHTML =
-    '<i class="ti ti-brain"></i> Construct Adaptive Questions Bank';
+  try {
+    await doCall(
+      "POST",
+      "/resumes/interview-prep",
+      { userId: uid, jobDescription: contextDesc },
+      "ai-interview",
+      (data) => {
+        if (data && Array.isArray(data.interviewPrep)) {
+          allInterviewQuestions = data.interviewPrep;
+          renderNextQuestionsPage();
+        }
+      },
+    );
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML =
+      '<i class="ti ti-brain"></i> Construct Adaptive Questions Bank';
+  }
 }
