@@ -7,29 +7,24 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const PDFParser = require("pdf2json");
+const axios = require("axios");
 
 const app = express();
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// ─────────────────────────────────────────────
-// CLOUDINARY CONFIG
-// ─────────────────────────────────────────────
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Store file in memory before uploading to Cloudinary
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
-// ─────────────────────────────────────────────
-// HELPER — parse strengths/weaknesses back to arrays
-// ─────────────────────────────────────────────
 function parseAnalysis(analysis) {
   if (!analysis) return analysis;
   return {
@@ -45,11 +40,41 @@ function parseAnalysis(analysis) {
   };
 }
 
+/**
+ * Robust helper to call Gemini with a fallback model if the primary is overloaded.
+ */
+async function generateWithFallback(
+  prompt,
+  primaryModel = "gemini-3.5-flash",
+  fallbackModel = "gemini-3.1-flash-lite",
+) {
+  try {
+    const model = genAI.getGenerativeModel({ model: primaryModel });
+    const result = await model.generateContent(prompt);
+    return result;
+  } catch (err) {
+    // Check if the error is related to high demand (503) or overload
+    const errMsg = err.message ? err.message.toLowerCase() : "";
+    if (
+      errMsg.includes("503") ||
+      errMsg.includes("high demand") ||
+      errMsg.includes("overloaded") ||
+      errMsg.includes("temporarily unavailable")
+    ) {
+      console.warn(
+        `Primary model ${primaryModel} overloaded, falling back to ${fallbackModel}`,
+      );
+      const model = genAI.getGenerativeModel({ model: fallbackModel });
+      return await model.generateContent(prompt);
+    }
+    throw err; // Re-throw if it's a different kind of error
+  }
+}
+
 // ─────────────────────────────────────────────
 // AUTH / USER
 // ─────────────────────────────────────────────
 
-// POST /auth/register
 app.post("/auth/register", async (req, res) => {
   try {
     const { name, email, password, profilePic } = req.body;
@@ -77,7 +102,6 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-// POST /auth/login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -97,7 +121,6 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// GET /users
 app.get("/users", async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -115,7 +138,6 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// GET /users/:id
 app.get("/users/:id", async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -133,8 +155,6 @@ app.get("/users/:id", async (req, res) => {
       },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-
-    // Parse analyses inside each resume
     const parsed = {
       ...user,
       resumes: user.resumes.map((r) => ({
@@ -148,7 +168,6 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
-// PUT /users/:id
 app.put("/users/:id", async (req, res) => {
   try {
     const { name, profilePic } = req.body;
@@ -171,7 +190,6 @@ app.put("/users/:id", async (req, res) => {
   }
 });
 
-// DELETE /users/:id
 app.delete("/users/:id", async (req, res) => {
   try {
     await prisma.user.delete({ where: { id: req.params.id } });
@@ -187,14 +205,12 @@ app.delete("/users/:id", async (req, res) => {
 // RESUMES
 // ─────────────────────────────────────────────
 
-// POST /resumes/upload  — multipart/form-data (file upload + AI analysis)
 app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "userId is required" });
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    // 1. Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: "resumes", resource_type: "raw" },
@@ -203,21 +219,17 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    // 2. Extract text from PDF using pdf2json safely
     let extractedText = "";
     await new Promise((resolve) => {
       const pdfParser = new PDFParser();
-
       pdfParser.on("pdfParser_dataError", (errData) => {
         console.error("pdf2json Error:", errData.parserError);
         extractedText = "Could not extract text from PDF";
         resolve();
       });
-
       pdfParser.on("pdfParser_dataReady", (pdfData) => {
         try {
           const pagesText = [];
-
           for (const page of pdfData.Pages) {
             const pageLines = [];
             for (const textObj of page.Texts) {
@@ -234,7 +246,6 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
             }
             pagesText.push(pageLines.join(" "));
           }
-
           extractedText = pagesText.join("\n").trim();
         } catch (parseError) {
           console.error("Structural processing error:", parseError);
@@ -242,13 +253,9 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
         }
         resolve();
       });
-
       pdfParser.parseBuffer(req.file.buffer);
     });
 
-    console.log("Extracted text length:", extractedText.length);
-
-    // Stop execution early if text conversion completely failed
     if (!extractedText || extractedText === "Could not extract text from PDF") {
       return res.status(422).json({
         error:
@@ -256,8 +263,6 @@ app.post("/resumes/upload", upload.single("resume"), async (req, res) => {
       });
     }
 
-    // 3. Ask Gemini to analyze resume and give ATS score
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     const prompt = `
 You are an ATS (Applicant Tracking System) expert. Analyze this resume text and respond ONLY with valid JSON, no markdown, no backticks.
 
@@ -277,14 +282,13 @@ Format:
 }
     `.trim();
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(prompt);
     const rawText = result.response
       .text()
       .replace(/```json|```/g, "")
       .trim();
     const analysis = JSON.parse(rawText);
 
-    // 4. Save resume to DB
     const resume = await prisma.resume.create({
       data: {
         fileName: req.file.originalname,
@@ -294,7 +298,6 @@ Format:
       },
     });
 
-    // 5. Save analysis to DB — stringify arrays so Prisma accepts them
     const savedAnalysis = await prisma.resumeAnalysis.create({
       data: {
         grammarScore: analysis.grammarScore,
@@ -306,16 +309,106 @@ Format:
       },
     });
 
+    const parsedAnalysis = parseAnalysis(savedAnalysis);
+
     res.status(201).json({
       message: "Resume uploaded and analyzed",
-      resume: { ...resume, analysis: parseAnalysis(savedAnalysis) },
+      resume: {
+        ...resume,
+        analysis: {
+          ...parsedAnalysis,
+          formatScore: parsedAnalysis.formattingScore,
+        },
+      },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /resumes  (manual entry without file)
+app.post("/resumes/cover-letter", async (req, res) => {
+  try {
+    const { userId, jobTitle, company, jobDescription } = req.body;
+    if (!userId || !jobTitle || !company)
+      return res
+        .status(400)
+        .json({ error: "userId, jobTitle and company are required" });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { skills: { include: { skill: true } } },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const skillsText =
+      user.skills.length > 0
+        ? `Their skills include: ${user.skills.map((s) => s.skill.name).join(", ")}.`
+        : "";
+    const descText = jobDescription ? `Job Description: ${jobDescription}` : "";
+
+    const prompt = `
+Write a professional cover letter for ${user.name} applying for the role of ${jobTitle} at ${company}.
+${skillsText}
+${descText}
+Keep it concise (3 paragraphs), professional, and enthusiastic.
+Respond ONLY with the cover letter text, no subject line, no extra commentary.
+    `.trim();
+
+    const result = await generateWithFallback(prompt);
+    const coverLetter = result.response.text().trim();
+
+    res.status(200).json({ message: "Cover letter generated", coverLetter });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/resumes/interview-prep", async (req, res) => {
+  try {
+    const { userId, jobDescription } = req.body;
+    if (!userId || !jobDescription)
+      return res
+        .status(400)
+        .json({ error: "userId and jobDescription are required" });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { skills: { include: { skill: true } } },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const skillsText =
+      user.skills.length > 0
+        ? `Candidate skills: ${user.skills.map((s) => s.skill.name).join(", ")}.`
+        : "";
+
+    const prompt = `
+Generate 15 intermediate-level interview questions for this job description:
+"${jobDescription}"
+${skillsText}
+Mix technical and behavioral questions (roughly 60% technical, 40% behavioral).
+Respond ONLY with a valid JSON array, no explanation, no markdown, no backticks.
+Format:
+[
+  { "type": "technical" or "behavioral", "question": "The question text", "idealAnswerGuideline": "A short answer tip in 1 sentence" }
+]
+    `.trim();
+
+    const result = await generateWithFallback(prompt);
+    const clean = result.response
+      .text()
+      .replace(/```json|```/g, "")
+      .trim();
+    const interviewPrep = JSON.parse(clean);
+
+    res
+      .status(200)
+      .json({ message: "Interview prep generated", interviewPrep });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/resumes", async (req, res) => {
   try {
     const { fileName, fileUrl, atsScore, userId } = req.body;
@@ -333,7 +426,6 @@ app.post("/resumes", async (req, res) => {
   }
 });
 
-// GET /resumes/user/:userId  ← must be BEFORE /resumes/:id to avoid route conflict
 app.get("/resumes/user/:userId", async (req, res) => {
   try {
     const resumes = await prisma.resume.findMany({
@@ -351,7 +443,6 @@ app.get("/resumes/user/:userId", async (req, res) => {
   }
 });
 
-// GET /resumes/:id
 app.get("/resumes/:id", async (req, res) => {
   try {
     const resume = await prisma.resume.findUnique({
@@ -370,7 +461,6 @@ app.get("/resumes/:id", async (req, res) => {
   }
 });
 
-// PUT /resumes/:id
 app.put("/resumes/:id", async (req, res) => {
   try {
     const { fileName, fileUrl, atsScore } = req.body;
@@ -386,7 +476,6 @@ app.put("/resumes/:id", async (req, res) => {
   }
 });
 
-// DELETE /resumes/:id
 app.delete("/resumes/:id", async (req, res) => {
   try {
     await prisma.resume.delete({ where: { id: req.params.id } });
@@ -398,45 +487,6 @@ app.delete("/resumes/:id", async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// RESUME ANALYSIS
-// ─────────────────────────────────────────────
-
-// POST /resume-analysis
-app.post("/resume-analysis", async (req, res) => {
-  try {
-    const {
-      grammarScore,
-      formattingScore,
-      keywordScore,
-      strengths,
-      weaknesses,
-      resumeId,
-    } = req.body;
-    if (!resumeId)
-      return res.status(400).json({ error: "resumeId is required" });
-
-    const analysis = await prisma.resumeAnalysis.create({
-      data: {
-        grammarScore,
-        formattingScore,
-        keywordScore,
-        strengths: JSON.stringify(Array.isArray(strengths) ? strengths : []),
-        weaknesses: JSON.stringify(Array.isArray(weaknesses) ? weaknesses : []),
-        resumeId,
-      },
-    });
-    res.status(201).json(parseAnalysis(analysis));
-  } catch (err) {
-    if (err.code === "P2002")
-      return res
-        .status(409)
-        .json({ error: "Analysis already exists for this resume" });
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /resume-analysis/:resumeId
 app.get("/resume-analysis/:resumeId", async (req, res) => {
   try {
     const analysis = await prisma.resumeAnalysis.findUnique({
@@ -449,7 +499,6 @@ app.get("/resume-analysis/:resumeId", async (req, res) => {
   }
 });
 
-// PUT /resume-analysis/:resumeId
 app.put("/resume-analysis/:resumeId", async (req, res) => {
   try {
     const {
@@ -481,12 +530,10 @@ app.put("/resume-analysis/:resumeId", async (req, res) => {
 // SKILLS
 // ─────────────────────────────────────────────
 
-// POST /skills
 app.post("/skills", async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "name is required" });
-
     const skill = await prisma.skill.create({ data: { name } });
     res.status(201).json(skill);
   } catch (err) {
@@ -496,7 +543,6 @@ app.post("/skills", async (req, res) => {
   }
 });
 
-// GET /skills
 app.get("/skills", async (req, res) => {
   try {
     const skills = await prisma.skill.findMany({ orderBy: { name: "asc" } });
@@ -506,7 +552,24 @@ app.get("/skills", async (req, res) => {
   }
 });
 
-// DELETE /skills/:id
+app.post("/skills/assign", async (req, res) => {
+  try {
+    const { userId, skillId, level } = req.body;
+    if (!userId || !skillId)
+      return res.status(400).json({ error: "userId and skillId are required" });
+
+    const userSkill = await prisma.userSkill.create({
+      data: { userId, skillId, level: level ?? 1 },
+      include: { skill: true },
+    });
+    res.status(201).json(userSkill);
+  } catch (err) {
+    if (err.code === "P2002")
+      return res.status(409).json({ error: "User already has this skill" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete("/skills/:id", async (req, res) => {
   try {
     await prisma.skill.delete({ where: { id: req.params.id } });
@@ -522,7 +585,6 @@ app.delete("/skills/:id", async (req, res) => {
 // USER SKILLS
 // ─────────────────────────────────────────────
 
-// POST /user-skills
 app.post("/user-skills", async (req, res) => {
   try {
     const { userId, skillId, level } = req.body;
@@ -541,7 +603,6 @@ app.post("/user-skills", async (req, res) => {
   }
 });
 
-// GET /user-skills/:userId
 app.get("/user-skills/:userId", async (req, res) => {
   try {
     const skills = await prisma.userSkill.findMany({
@@ -554,7 +615,6 @@ app.get("/user-skills/:userId", async (req, res) => {
   }
 });
 
-// PUT /user-skills/:id
 app.put("/user-skills/:id", async (req, res) => {
   try {
     const { level } = req.body;
@@ -571,7 +631,6 @@ app.put("/user-skills/:id", async (req, res) => {
   }
 });
 
-// DELETE /user-skills/:id
 app.delete("/user-skills/:id", async (req, res) => {
   try {
     await prisma.userSkill.delete({ where: { id: req.params.id } });
@@ -587,7 +646,6 @@ app.delete("/user-skills/:id", async (req, res) => {
 // JOBS
 // ─────────────────────────────────────────────
 
-// POST /jobs
 app.post("/jobs", async (req, res) => {
   try {
     const { title, company, location, salaryMin, salaryMax, description } =
@@ -606,7 +664,6 @@ app.post("/jobs", async (req, res) => {
   }
 });
 
-// GET /jobs
 app.get("/jobs", async (req, res) => {
   try {
     const { search, location } = req.query;
@@ -625,7 +682,161 @@ app.get("/jobs", async (req, res) => {
   }
 });
 
-// GET /jobs/:id
+app.get("/jobs/matches/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const userData = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        resumes: { orderBy: { createdAt: "desc" }, take: 1 },
+        skills: { include: { skill: true } },
+      },
+    });
+
+    if (!userData || userData.resumes.length === 0) {
+      return res.status(404).json({
+        error: "Please upload a resume first to extract qualifications.",
+      });
+    }
+
+    const latestResume = userData.resumes[0];
+    const parsedSkills =
+      userData.skills.map((s) => s.skill.name).join(", ") || "Developer skills";
+    const userLocationQuery = req.query.location || "India";
+
+    const localJobs = await prisma.job.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    const structuredLocalJobs = localJobs.map((job) => ({
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      description: job.description || "No description specified.",
+      applyLink: "Internal Application System",
+      source: "Local Database",
+    }));
+
+    let internetJobs = [];
+    if (process.env.USE_LIVE_JOBS === "true") {
+      try {
+        const apiResponse = await axios.get(
+          "https://jsearch.p.rapidapi.com/search",
+          {
+            params: {
+              query: `${parsedSkills.split(",")[0].trim()} jobs in ${userLocationQuery}`,
+              page: "1",
+              num_pages: "2",
+              date_posted: "week",
+            },
+            headers: {
+              "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+              "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+            },
+          },
+        );
+
+        if (apiResponse.data && apiResponse.data.data) {
+          internetJobs = apiResponse.data.data.slice(0, 15).map((j) => ({
+            id: j.job_id,
+            title: j.job_title,
+            company: j.employer_name,
+            location:
+              `${j.job_city || ""} ${j.job_country || ""}`.trim() || "Remote",
+            description: (
+              j.job_description || "No description available."
+            ).slice(0, 500),
+            applyLink: j.job_apply_link,
+            source: "Internet Web Scrape",
+          }));
+        }
+      } catch (apiErr) {
+        console.error("JSearch API error:", apiErr.message);
+      }
+    } else {
+      internetJobs = [
+        {
+          id: "mock-internet-1",
+          title: "React Developer",
+          company: "Global Development Agency",
+          location: "Remote",
+          description:
+            "Seeking a frontend developer proficient in JavaScript, React, and modern CSS layout stacks.",
+          applyLink: "https://example.com/apply-mock",
+          source: "Mock Internet File",
+        },
+        {
+          id: "mock-internet-2",
+          title: "Full Stack Developer",
+          company: "Tech Startup Inc",
+          location: "Remote",
+          description:
+            "Looking for a full stack developer with Node.js, Express, and React experience.",
+          applyLink: "https://example.com/apply-mock-2",
+          source: "Mock Internet File",
+        },
+      ];
+    }
+
+    const combinedJobListings = [...structuredLocalJobs, ...internetJobs];
+
+    if (combinedJobListings.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No jobs available for matching.", matches: [] });
+    }
+
+    const evaluationPrompt = `
+You are an advanced recruitment matching engine. Rank these jobs against the candidate's profile.
+
+Candidate Profile:
+Known Skills: ${parsedSkills}
+ATS Score: ${latestResume.atsScore}/100
+
+Available Job Listings:
+${JSON.stringify(combinedJobListings.map((j) => ({ id: j.id, title: j.title, description: j.description })))}
+
+Evaluate suitability on a scale from 0 to 100 based on how well the candidate matches each job.
+Respond ONLY with a valid JSON array, no markdown, no backticks.
+Format:
+[
+  { "id": "job_id_here", "score": 92, "reason": "One sentence explaining the match." }
+]
+    `.trim();
+
+    const aiResponse = await generateWithFallback(evaluationPrompt);
+    const cleanedText = aiResponse.response
+      .text()
+      .replace(/```json|```/g, "")
+      .trim();
+    const scoredList = JSON.parse(cleanedText);
+
+    const finalRankedMatches = scoredList
+      .map((scoreItem) => {
+        const originalDetails = combinedJobListings.find(
+          (j) => j.id === scoreItem.id,
+        );
+        if (!originalDetails) return null;
+        return {
+          ...originalDetails,
+          matchScore: scoreItem.score,
+          matchReason: scoreItem.reason,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    res.status(200).json({
+      totalAnalyzed: finalRankedMatches.length,
+      matches: finalRankedMatches,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/jobs/:id", async (req, res) => {
   try {
     const job = await prisma.job.findUnique({
@@ -643,7 +854,6 @@ app.get("/jobs/:id", async (req, res) => {
   }
 });
 
-// PUT /jobs/:id
 app.put("/jobs/:id", async (req, res) => {
   try {
     const { title, company, location, salaryMin, salaryMax, description } =
@@ -660,7 +870,6 @@ app.put("/jobs/:id", async (req, res) => {
   }
 });
 
-// DELETE /jobs/:id
 app.delete("/jobs/:id", async (req, res) => {
   try {
     await prisma.job.delete({ where: { id: req.params.id } });
@@ -673,10 +882,9 @@ app.delete("/jobs/:id", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// JOB MATCHES
+// JOB MATCHES (saved to DB)
 // ─────────────────────────────────────────────
 
-// POST /job-matches
 app.post("/job-matches", async (req, res) => {
   try {
     const { userId, jobId, matchScore } = req.body;
@@ -697,7 +905,6 @@ app.post("/job-matches", async (req, res) => {
   }
 });
 
-// GET /job-matches/user/:userId
 app.get("/job-matches/user/:userId", async (req, res) => {
   try {
     const matches = await prisma.jobMatch.findMany({
@@ -711,7 +918,6 @@ app.get("/job-matches/user/:userId", async (req, res) => {
   }
 });
 
-// PUT /job-matches/:id
 app.put("/job-matches/:id", async (req, res) => {
   try {
     const { matchScore } = req.body;
@@ -728,7 +934,6 @@ app.put("/job-matches/:id", async (req, res) => {
   }
 });
 
-// DELETE /job-matches/:id
 app.delete("/job-matches/:id", async (req, res) => {
   try {
     await prisma.jobMatch.delete({ where: { id: req.params.id } });
@@ -744,154 +949,7 @@ app.delete("/job-matches/:id", async (req, res) => {
 // ROADMAPS
 // ─────────────────────────────────────────────
 
-// POST /roadmaps
-app.post("/roadmaps", async (req, res) => {
-  try {
-    const { title, userId } = req.body;
-    if (!title || !userId)
-      return res.status(400).json({ error: "title and userId are required" });
-
-    const roadmap = await prisma.roadmap.create({
-      data: { title, userId },
-      include: { steps: true },
-    });
-    res.status(201).json(roadmap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /roadmaps/user/:userId
-app.get("/roadmaps/user/:userId", async (req, res) => {
-  try {
-    const roadmaps = await prisma.roadmap.findMany({
-      where: { userId: req.params.userId },
-      include: { steps: { orderBy: { createdAt: "asc" } } },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(roadmaps);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /roadmaps/:id
-app.get("/roadmaps/:id", async (req, res) => {
-  try {
-    const roadmap = await prisma.roadmap.findUnique({
-      where: { id: req.params.id },
-      include: { steps: { orderBy: { createdAt: "asc" } } },
-    });
-    if (!roadmap) return res.status(404).json({ error: "Roadmap not found" });
-    res.json(roadmap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PUT /roadmaps/:id
-app.put("/roadmaps/:id", async (req, res) => {
-  try {
-    const { title } = req.body;
-    const roadmap = await prisma.roadmap.update({
-      where: { id: req.params.id },
-      data: { title },
-    });
-    res.json(roadmap);
-  } catch (err) {
-    if (err.code === "P2025")
-      return res.status(404).json({ error: "Roadmap not found" });
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE /roadmaps/:id
-app.delete("/roadmaps/:id", async (req, res) => {
-  try {
-    await prisma.roadmap.delete({ where: { id: req.params.id } });
-    res.json({ message: "Roadmap deleted" });
-  } catch (err) {
-    if (err.code === "P2025")
-      return res.status(404).json({ error: "Roadmap not found" });
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────
-// ROADMAP STEPS
-// ─────────────────────────────────────────────
-
-// POST /roadmap-steps
-app.post("/roadmap-steps", async (req, res) => {
-  try {
-    const { title, description, status, progress, roadmapId } = req.body;
-    if (!title || !roadmapId)
-      return res
-        .status(400)
-        .json({ error: "title and roadmapId are required" });
-
-    const step = await prisma.roadmapStep.create({
-      data: {
-        title,
-        description,
-        status: status ?? "PENDING",
-        progress: progress ?? 0,
-        roadmapId,
-      },
-    });
-    res.status(201).json(step);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /roadmap-steps/:roadmapId
-app.get("/roadmap-steps/:roadmapId", async (req, res) => {
-  try {
-    const steps = await prisma.roadmapStep.findMany({
-      where: { roadmapId: req.params.roadmapId },
-      orderBy: { createdAt: "asc" },
-    });
-    res.json(steps);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PUT /roadmap-steps/:id
-app.put("/roadmap-steps/:id", async (req, res) => {
-  try {
-    const { title, description, status, progress } = req.body;
-    const step = await prisma.roadmapStep.update({
-      where: { id: req.params.id },
-      data: { title, description, status, progress },
-    });
-    res.json(step);
-  } catch (err) {
-    if (err.code === "P2025")
-      return res.status(404).json({ error: "Step not found" });
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE /roadmap-steps/:id
-app.delete("/roadmap-steps/:id", async (req, res) => {
-  try {
-    await prisma.roadmapStep.delete({ where: { id: req.params.id } });
-    res.json({ message: "Step deleted" });
-  } catch (err) {
-    if (err.code === "P2025")
-      return res.status(404).json({ error: "Step not found" });
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────
-// AI — GEMINI ROADMAP GENERATOR
-// ─────────────────────────────────────────────
-
-// POST /ai/generate-roadmap
-app.post("/ai/generate-roadmap", async (req, res) => {
+app.post("/roadmaps/generate-ai", async (req, res) => {
   try {
     const { userId, title, currentSkills } = req.body;
     if (!userId || !title)
@@ -915,15 +973,14 @@ Format:
 ]
     `.trim();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const clean = text.replace(/```json|```/g, "").trim();
+    const result = await generateWithFallback(prompt);
+    const clean = result.response
+      .text()
+      .replace(/```json|```/g, "")
+      .trim();
     const steps = JSON.parse(clean);
 
-    const roadmap = await prisma.roadmap.create({
-      data: { title, userId },
-    });
+    const roadmap = await prisma.roadmap.create({ data: { title, userId } });
 
     const savedSteps = await Promise.all(
       steps.map((step) =>
@@ -948,86 +1005,163 @@ Format:
   }
 });
 
-// ─────────────────────────────────────────────
-// AI — GEMINI COVER LETTER GENERATOR
-// ─────────────────────────────────────────────
+app.post("/ai/generate-roadmap", async (req, res) => {
+  req.url = "/roadmaps/generate-ai";
+  app.handle(req, res);
+});
 
-// POST /ai/generate-cover-letter
-app.post("/ai/generate-cover-letter", async (req, res) => {
+app.post("/roadmaps", async (req, res) => {
   try {
-    const { userName, jobTitle, company, skills, experience } = req.body;
-    if (!userName || !jobTitle || !company)
-      return res
-        .status(400)
-        .json({ error: "userName, jobTitle and company are required" });
+    const { title, userId } = req.body;
+    if (!title || !userId)
+      return res.status(400).json({ error: "title and userId are required" });
 
-    const skillsText =
-      skills && skills.length > 0
-        ? `Their skills include: ${skills.join(", ")}.`
-        : "";
-    const expText = experience ? `Experience: ${experience}.` : "";
-
-    const prompt = `
-Write a professional cover letter for ${userName} applying for the role of ${jobTitle} at ${company}.
-${skillsText}
-${expText}
-Keep it concise (3 paragraphs), professional, and enthusiastic.
-Respond ONLY with the cover letter text, no subject line, no extra commentary.
-    `.trim();
-
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-    const result = await model.generateContent(prompt);
-    const coverLetter = result.response.text().trim();
-
-    res.status(200).json({
-      message: "Cover letter generated by Gemini AI",
-      coverLetter,
+    const roadmap = await prisma.roadmap.create({
+      data: { title, userId },
+      include: { steps: true },
     });
+    res.status(201).json(roadmap);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─────────────────────────────────────────────
-// AI — GEMINI INTERVIEW QUESTIONS GENERATOR
-// ─────────────────────────────────────────────
-
-// POST /ai/generate-interview-questions
-app.post("/ai/generate-interview-questions", async (req, res) => {
+app.get("/roadmaps/user/:userId", async (req, res) => {
   try {
-    const { jobTitle, skills, difficulty } = req.body;
-    if (!jobTitle)
-      return res.status(400).json({ error: "jobTitle is required" });
-
-    const skillsText =
-      skills && skills.length > 0
-        ? `Focus on these skills: ${skills.join(", ")}.`
-        : "";
-    const level = difficulty || "intermediate";
-
-    const prompt = `
-Generate 8 ${level}-level interview questions for a ${jobTitle} position.
-${skillsText}
-Mix technical and behavioral questions.
-Respond ONLY with a valid JSON array, no explanation, no markdown, no backticks.
-Format:
-[
-  { "type": "technical" or "behavioral", "question": "The question text", "tip": "A short answer tip in 1 sentence" },
-  ...
-]
-    `.trim();
-
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const clean = text.replace(/```json|```/g, "").trim();
-    const questions = JSON.parse(clean);
-
-    res.status(200).json({
-      message: "Interview questions generated by Gemini AI",
-      questions,
+    const roadmaps = await prisma.roadmap.findMany({
+      where: { userId: req.params.userId },
+      include: { steps: { orderBy: { createdAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
     });
+    res.json(roadmaps);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/roadmaps/:id", async (req, res) => {
+  try {
+    const roadmap = await prisma.roadmap.findUnique({
+      where: { id: req.params.id },
+      include: { steps: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!roadmap) return res.status(404).json({ error: "Roadmap not found" });
+    res.json(roadmap);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/roadmaps/:id", async (req, res) => {
+  try {
+    const { title } = req.body;
+    const roadmap = await prisma.roadmap.update({
+      where: { id: req.params.id },
+      data: { title },
+    });
+    res.json(roadmap);
+  } catch (err) {
+    if (err.code === "P2025")
+      return res.status(404).json({ error: "Roadmap not found" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/roadmaps/:id", async (req, res) => {
+  try {
+    await prisma.roadmap.delete({ where: { id: req.params.id } });
+    res.json({ message: "Roadmap deleted" });
+  } catch (err) {
+    if (err.code === "P2025")
+      return res.status(404).json({ error: "Roadmap not found" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ROADMAP STEPS
+// ─────────────────────────────────────────────
+
+app.post("/roadmaps/step", async (req, res) => {
+  try {
+    const { title, description, status, progress, roadmapId } = req.body;
+    if (!title || !roadmapId)
+      return res
+        .status(400)
+        .json({ error: "title and roadmapId are required" });
+
+    const step = await prisma.roadmapStep.create({
+      data: {
+        title,
+        description,
+        status: status ?? "PENDING",
+        progress: progress ?? 0,
+        roadmapId,
+      },
+    });
+    res.status(201).json(step);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/roadmap-steps", async (req, res) => {
+  try {
+    const { title, description, status, progress, roadmapId } = req.body;
+    if (!title || !roadmapId)
+      return res
+        .status(400)
+        .json({ error: "title and roadmapId are required" });
+
+    const step = await prisma.roadmapStep.create({
+      data: {
+        title,
+        description,
+        status: status ?? "PENDING",
+        progress: progress ?? 0,
+        roadmapId,
+      },
+    });
+    res.status(201).json(step);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/roadmap-steps/:roadmapId", async (req, res) => {
+  try {
+    const steps = await prisma.roadmapStep.findMany({
+      where: { roadmapId: req.params.roadmapId },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(steps);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/roadmap-steps/:id", async (req, res) => {
+  try {
+    const { title, description, status, progress } = req.body;
+    const step = await prisma.roadmapStep.update({
+      where: { id: req.params.id },
+      data: { title, description, status, progress },
+    });
+    res.json(step);
+  } catch (err) {
+    if (err.code === "P2025")
+      return res.status(404).json({ error: "Step not found" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/roadmap-steps/:id", async (req, res) => {
+  try {
+    await prisma.roadmapStep.delete({ where: { id: req.params.id } });
+    res.json({ message: "Step deleted" });
+  } catch (err) {
+    if (err.code === "P2025")
+      return res.status(404).json({ error: "Step not found" });
     res.status(500).json({ error: err.message });
   }
 });
